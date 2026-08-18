@@ -1074,7 +1074,7 @@
       if (!state.currentWord) return;
 
       const rawWord = state.currentWord.word.toUpperCase();
-      const hyphenatedWord = rawWord.split('').join('-');
+      const hyphenatedWord = rawWord.split(/\s+/).map(w => w.split('').join('-')).join('   ');
 
       elements.displayWord.textContent = hyphenatedWord;
       elements.displaySentence.textContent = `Example: "${state.currentWord.sentence}"`;
@@ -1198,11 +1198,13 @@
 
       const typedAnswer = elements.inputSpelling.value.trim().toUpperCase();
       const correctAnswer = state.currentWord.word.trim().toUpperCase();
+      const isTypingCorrect = (typedAnswer === correctAnswer) ||
+                              (typedAnswer.replace(/['\s]/g, '') === correctAnswer.replace(/['\s]/g, ''));
 
       const feedback = elements.typingFeedback;
       feedback.classList.remove('hidden', 'bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/40', 'bg-rose-500/20', 'text-rose-300', 'border-rose-500/40', 'animate-shake');
 
-      if (typedAnswer === correctAnswer) {
+      if (isTypingCorrect) {
         playSoundFx('success');
         state.streak += 1;
         state.score += 10;
@@ -1307,7 +1309,8 @@
       if (!state.currentWord) return;
 
       const word = state.currentWord.word.toUpperCase();
-      const hint = `Word of ${word.length} letters: starts with "${word[0]}" and ends with "${word[word.length - 1]}".`;
+      const cleanLetters = word.replace(/[^A-Z]/g, '');
+      const hint = `Word/Expression of ${cleanLetters.length} letters: starts with "${cleanLetters[0]}" and ends with "${cleanLetters[cleanLetters.length - 1]}".`;
       elements.hintText.textContent = hint;
       elements.hintBox.classList.remove('hidden');
     }
@@ -1399,8 +1402,15 @@
       return true;
     }
 
+    // TOKENS DE DELIMITAÇÃO E PONTUAÇÃO (IGNORADOS COMO LETRAS NO SOLETRAR)
+    const SPELLING_DELIMITER_TOKENS = new Set([
+      "SPACE", "BLANK", "ESPACE", "PLACE", "PACE",
+      "APOSTROPHE", "QUOTE", "QUOTATION", "QUOTES",
+      "HYPHEN", "DASH", "DOT", "PERIOD", "COMMA"
+    ]);
+
     /**
-     * REGRA 2: SUPORTE A LETRAS DUPLAS ("DOUBLE P", "DOUBLE L", etc.)
+     * REGRA 2: SUPORTE A LETRAS DUPLAS ("DOUBLE P", "DOUBLE L", etc.) E DELIMITADORES
      * Converte um array de tokens em uma string de letras. Trata "DOUBLE <LETTER>" como duas letras.
      */
     function parseTokensToLetters(tokens) {
@@ -1411,6 +1421,12 @@
       while (i < tokens.length) {
         const current = tokens[i];
         const next = tokens[i + 1];
+
+        // Ignora delimitadores falados (SPACE, APOSTROPHE, etc.)
+        if (SPELLING_DELIMITER_TOKENS.has(current)) {
+          i++;
+          continue;
+        }
 
         if (current === "DOUBLE" && next) {
           if (next === "YOU" || next === "U") {
@@ -1485,23 +1501,25 @@
       recognitionInstance.lang = 'en-US';
       recognitionInstance.maxAlternatives = 5;
 
-      // 2. Injetar JSGF Grammar com Vocabulary Biasing e suporte a DOUBLE <LETTER>
+      // 2. Injetar JSGF Grammar com Vocabulary Biasing, suporte a DOUBLE <LETTER>, SPACE e APOSTROPHE
       const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
       if (SpeechGrammarList) {
         try {
-          const upperWord = targetWord.toUpperCase();
-          const uniqueLetters = [...new Set(upperWord.split(''))];
-          const spelledWithSpaces = upperWord.split('').join(' ');
+          const upperWord = targetWord.toUpperCase().trim();
+          const cleanLettersOnly = upperWord.replace(/[^A-Z]/g, '');
+          const uniqueLetters = [...new Set(cleanLettersOnly.split(''))];
+          const spelledWithSpaces = cleanLettersOnly.split('').join(' ');
+          const wordTokens = upperWord.replace(/[^A-Z\s]/g, '').split(/\s+/).filter(Boolean);
 
-          let items = [...uniqueLetters, spelledWithSpaces, upperWord, "DOUBLE"];
+          let items = [...uniqueLetters, spelledWithSpaces, upperWord, ...wordTokens, "DOUBLE", "SPACE", "APOSTROPHE"];
 
-          for (let i = 0; i < upperWord.length - 1; i++) {
-            if (upperWord[i] === upperWord[i + 1]) {
-              items.push(`DOUBLE ${upperWord[i]}`);
+          for (let i = 0; i < cleanLettersOnly.length - 1; i++) {
+            if (cleanLettersOnly[i] === cleanLettersOnly[i + 1]) {
+              items.push(`DOUBLE ${cleanLettersOnly[i]}`);
             }
           }
 
-          const grammarString = `#JSGF V1.0; grammar spelling; public <item> = ${items.join(' | ')} ;`;
+          const grammarString = `#JSGF V1.0; grammar spelling; public <item> = ${[...new Set(items)].join(' | ')} ;`;
 
           const grammarList = new SpeechGrammarList();
           grammarList.addFromString(grammarString, 1.0);
@@ -1555,33 +1573,53 @@
      */
     function evaluateSpellingBeeSequence(eventResults, targetWord) {
       const target = targetWord.toUpperCase().trim();
+      const targetLetters = target.replace(/[^A-Z]/g, '');
+      const targetWords = target.replace(/[^A-Z\s]/g, '').split(/\s+/).filter(Boolean);
+      const targetPhraseClean = targetWords.join(' ');
+      const n = targetWords.length || 1;
+
       const formattedWord = target.charAt(0).toUpperCase() + target.slice(1).toLowerCase();
-      const hyphenatedSpelling = target.split('').join(' - ');
-      const cleanDisplayText = `${formattedWord} ${hyphenatedSpelling} ${formattedWord}`;
+      const hyphenatedSpelling = target.split(/\s+/).map(w => w.split('').join(' - ')).join('   ');
+      const cleanDisplayText = `${formattedWord} (${hyphenatedSpelling}) ${formattedWord}`;
 
       for (let i = 0; i < eventResults[0].length; i++) {
         const raw = eventResults[0][i].transcript;
         const cleanRaw = raw.toUpperCase().replace(/[^A-Z\s]/g, ' ').trim();
         const tokens = cleanRaw.split(/\s+/).filter(Boolean);
 
-        // Extrai soletrado central (miolo) e processa letras duplas (ex: "DOUBLE P" -> "PP")
-        const middleTokens = tokens.length >= 3 ? tokens.slice(1, tokens.length - 1) : tokens;
+        // Extrai soletrado central (miolo) e processa letras duplas / espaços / apóstrofos
+        let initialPhrase = "";
+        let trailingPhrase = "";
+        let middleTokens = tokens;
+
+        if (tokens.length >= n * 2 + 1) {
+          initialPhrase = tokens.slice(0, n).join(' ');
+          trailingPhrase = tokens.slice(tokens.length - n).join(' ');
+          middleTokens = tokens.slice(n, tokens.length - n);
+        } else if (tokens.length >= 3) {
+          initialPhrase = tokens[0];
+          trailingPhrase = tokens[tokens.length - 1];
+          middleTokens = tokens.slice(1, tokens.length - 1);
+        }
+
         const middleLetters = parseTokensToLetters(middleTokens);
-        const initialWord = tokens[0] || "";
-        const trailingWord = tokens[tokens.length - 1] || "";
 
-        const isInitialValid = initialWord === target || isAcousticallyEquivalent(initialWord, target);
-        const isTrailingValid = trailingWord === target || isAcousticallyEquivalent(trailingWord, target);
-        const hasFullSequence = tokens.length >= 3 && isInitialValid && isTrailingValid;
+        const isInitialValid = initialPhrase === targetPhraseClean ||
+                               initialPhrase.replace(/\s/g, '') === targetLetters ||
+                               isAcousticallyEquivalent(initialPhrase, targetPhraseClean);
+        const isTrailingValid = trailingPhrase === targetPhraseClean ||
+                                trailingPhrase.replace(/\s/g, '') === targetLetters ||
+                                isAcousticallyEquivalent(trailingPhrase, targetPhraseClean);
+        const hasFullSequence = (tokens.length >= n * 2 + 1 || tokens.length >= 3) && isInitialValid && isTrailingValid;
 
-        const isExactMatch = middleLetters === target || isEquivalentSpelling(middleLetters, target);
-        const lev = acousticLevenshteinDistance(middleLetters, target);
+        const isExactMatch = middleLetters === targetLetters || isEquivalentSpelling(middleLetters, targetLetters);
+        const lev = acousticLevenshteinDistance(middleLetters, targetLetters);
 
         if (isExactMatch && hasFullSequence) {
           return {
             type: 'EXACT',
             target: target,
-            heard: target,
+            heard: targetLetters,
             raw: raw,
             displayText: cleanDisplayText,
             adjustments: []
@@ -1610,14 +1648,14 @@
       // Fallback de tolerância no áudio capturado
       const primaryRaw = eventResults[0][0].transcript;
       const primaryLetters = parseSpokenTranscriptToLetters(primaryRaw);
-      const isExactMatch = primaryLetters === target || isEquivalentSpelling(primaryLetters, target);
-      const lev = acousticLevenshteinDistance(primaryLetters, target);
+      const isExactMatch = primaryLetters === targetLetters || isEquivalentSpelling(primaryLetters, targetLetters);
+      const lev = acousticLevenshteinDistance(primaryLetters, targetLetters);
 
       if (isExactMatch) {
         return {
           type: 'EXACT',
           target: target,
-          heard: target,
+          heard: targetLetters,
           raw: primaryRaw,
           displayText: cleanDisplayText,
           adjustments: []

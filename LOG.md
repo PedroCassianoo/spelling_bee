@@ -7,6 +7,22 @@ Diretório: `C:\Projetos Gemini\Red News`
 
 ## 🛠️ Últimas Correções de Erros (Bug Fixes)
 
+### [2026-08-17] - POP: Revisão Fonética, Áudio e Validação de "There aren't" (J2)
+
+- **Identificação do Problema:**
+  1. **Áudio de Locução Incompleto:** No banco de dados (`insert_words_j2.sql` e `insert_words.sql`), o termo `"there aren't"` apontava para `there-us.mp3`, reproduzindo apenas a palavra `"there"` em vez da locução completa.
+  2. **Tratamento de Pontuação e Espaços na Soletração:** Alunos que pronunciavam `T - H - E - R - E [space] A - R - E - N - apostrophe - T` tinham os tokens `"SPACE"` e `"APOSTROPHE"` interpretados como letras individuais se falados em voz alta.
+  3. **Validação de Frases e Expressões Compostas:** A validação de sequência nos limites inicial e final assumia apenas 1 token isolado e comparava com caracteres literais de pontuação, gerando falha em expressões compostas e contrações.
+
+- **Ações e Correções Aplicadas:**
+  - ✅ **Áudio 100% Completo:** Ajustado `audio_url = ''` para expressões compostas no SQL, ativando a síntese de voz nativa (`window.speechSynthesis`) em *en-US* para pronunciar a frase inteira `"There aren't."` perfeitamente.
+  - ✅ **Filtro de Delimitadores de Soletração:** Adicionado suporte a `SPELLING_DELIMITER_TOKENS` (`SPACE`, `APOSTROPHE`, `QUOTE`, `HYPHEN`, `DASH`, `PERIOD`, `COMMA`) para ignorar palavras delimitadoras sem convertê-las em letras erradas.
+  - ✅ **Normalização de Expressões no Reconhecimento:** A engine agora extrai e compara as letras puras do alvo (`"THEREARENT"`), aceitando soletrações com ou sem pontuação falada.
+  - ✅ **Formatação Visual Perfeita:** A exibição formatada separa palavras por espaçamento largo (`T-H-E-R-E   A-R-E-N-'-T`) mantendo a estética Red Balloon / Spelling Bee.
+  - ✅ **Vocabulary Biasing Expandido:** Injeção automática das palavras da expressão, letras individuais, `DOUBLE`, `SPACE` e `APOSTROPHE` no `SpeechGrammarList`.
+
+---
+
 ### [2026-08-17] - Correção Crítica de Vazamento da Palavra no Modo Reconhecimento de Voz (Voice Screen)
 
 - **Identificação do Erro:**
