@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="h-full bg-slate-950">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spelling Bee Contest - Red Balloon Paulínia</title>
-  
+
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Supabase Client JS via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
+
   <!-- Canvas Confetti via CDN para comemoração de acertos -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  
+
   <!-- Ambit Web Font CDN -->
   <link href="https://fonts.cdnfonts.com/css/ambit" rel="stylesheet">
 
@@ -50,6 +51,7 @@
     body {
       font-family: 'Ambit', sans-serif !important;
     }
+
     /* ESTILIZAÇÃO DO FAVO DE MEL (HONEYCOMB HEXAGON 3D) */
     .honeycomb-hex-outer {
       clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
@@ -102,28 +104,61 @@
 
     /* Animações e Pulso */
     @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.1); opacity: 0.4; }
-      100% { transform: scale(0.95); opacity: 0.8; }
+      0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
+
+      50% {
+        transform: scale(1.1);
+        opacity: 0.4;
+      }
+
+      100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
     }
+
     .audio-pulse {
       animation: pulse-ring 2.5s infinite ease-in-out;
     }
 
     @keyframes fadeInScale {
-      from { opacity: 0; transform: scale(0.92); }
-      to { opacity: 1; transform: scale(1); }
+      from {
+        opacity: 0;
+        transform: scale(0.92);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
+
     .animate-fade-in {
       animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     /* Animação Shake para Erro */
     @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-10px); }
-      40%, 80% { transform: translateX(10px); }
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20%,
+      60% {
+        transform: translateX(-10px);
+      }
+
+      40%,
+      80% {
+        transform: translateX(10px);
+      }
     }
+
     .animate-shake {
       animation: shake 0.4s ease-in-out;
     }
@@ -134,29 +169,43 @@
     }
   </style>
 </head>
-<body class="h-full text-slate-100 font-sans antialiased flex flex-col justify-between selection:bg-bee-500 selection:text-slate-950">
+
+<body
+  class="h-full text-slate-100 font-sans antialiased flex flex-col justify-between selection:bg-bee-500 selection:text-slate-950">
 
   <!-- Container Principal (Mobile-First 9:16 Aspect Ratio, Max-width centralizado, 0 Scroll) -->
-  <div class="w-full max-w-md mx-auto h-[100dvh] max-h-[100dvh] flex flex-col justify-between bg-slate-900 shadow-2xl relative overflow-hidden border-x border-slate-800/60 p-0">
-    
+  <div
+    class="w-full max-w-md mx-auto h-[100dvh] max-h-[100dvh] flex flex-col justify-between bg-slate-900 shadow-2xl relative overflow-hidden border-x border-slate-800/60 p-0">
+
     <!-- Efeitos de Brilho de Fundo Ambientais -->
     <div class="absolute -top-24 -left-20 w-64 h-64 bg-bee-500/15 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute top-1/2 -right-20 w-72 h-72 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute -bottom-20 left-10 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <!-- BARRA SUPERIOR DE GAMIFICAÇÃO & CONFIGURAÇÕES -->
-    <div class="px-4 pt-2.5 pb-2 flex items-center justify-between z-20 border-b border-slate-800/50 bg-slate-950/40 shrink-0">
+    <div
+      class="px-4 pt-2.5 pb-2 flex items-center justify-between z-20 border-b border-slate-800/50 bg-slate-950/40 shrink-0">
       <!-- Badges de Gamificação (Pills Neutras, Números Grandes e Ícones Destacados) -->
       <div class="flex items-center space-x-3">
         <!-- Badge 1: Sequência de Acertos (Streak) -->
-        <div id="streakBadge" class="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-1.5 rounded-full border border-slate-700/60 shadow-sm" title="Streak">
-          <svg class="w-4 h-4 text-amber-400 fill-amber-400 stroke-amber-300 shrink-0" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        <div id="streakBadge"
+          class="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-1.5 rounded-full border border-slate-700/60 shadow-sm"
+          title="Streak">
+          <svg class="w-4 h-4 text-amber-400 fill-amber-400 stroke-amber-300 shrink-0" viewBox="0 0 24 24"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
           <span id="streakCount" class="font-extrabold text-base sm:text-lg text-slate-100 leading-none">0</span>
         </div>
 
         <!-- Badge 2: Pontuação Total (Points) -->
-        <div id="scoreBadge" class="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-1.5 rounded-full border border-slate-700/60 shadow-sm" title="Points">
-          <svg class="w-4 h-4 text-amber-400 fill-current shrink-0" viewBox="0 0 24 24"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V18H8v2h8v-2h-3v-2.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
+        <div id="scoreBadge"
+          class="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-1.5 rounded-full border border-slate-700/60 shadow-sm"
+          title="Points">
+          <svg class="w-4 h-4 text-amber-400 fill-current shrink-0" viewBox="0 0 24 24">
+            <path
+              d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V18H8v2h8v-2h-3v-2.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z" />
+          </svg>
           <span id="scoreCount" class="font-extrabold text-base sm:text-lg text-slate-100 leading-none">0</span>
         </div>
       </div>
@@ -165,29 +214,35 @@
     <!-- ========================================== -->
     <!-- TELA 1: HOME / SELEÇÃO DE NÍVEL (FAVO DE MEL) -->
     <!-- ========================================== -->
-    <section id="screenHome" class="flex-1 flex flex-col justify-between px-4 py-3 relative z-10 block overflow-hidden h-full">
-      
+    <section id="screenHome"
+      class="flex-1 flex flex-col justify-between px-4 py-3 relative z-10 block overflow-hidden h-full">
+
       <!-- Header Hero Area (Rebalancado & Destacado) -->
       <header class="pt-1 pb-1 text-center shrink-0 space-y-1.5">
-        <div class="inline-flex items-center justify-center space-x-1.5 bg-bee-500/10 px-3.5 py-1 rounded-full border border-bee-500/25">
+        <div
+          class="inline-flex items-center justify-center space-x-1.5 bg-bee-500/10 px-3.5 py-1 rounded-full border border-bee-500/25">
           <svg class="w-4 h-4 text-bee-400" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            <path
+              d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
           </svg>
           <span class="text-xs font-extrabold uppercase tracking-widest text-bee-400">Red Balloon Paulínia</span>
         </div>
-        
-        <h1 class="font-display text-3xl sm:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-bee-400 to-amber-500 drop-shadow-md">
+
+        <h1
+          class="font-display text-3xl sm:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-bee-400 to-amber-500 drop-shadow-md">
           SPELLING BEE CONTEST
         </h1>
-        
+
         <p class="text-slate-100 text-sm sm:text-base max-w-xs sm:max-w-sm mx-auto leading-relaxed font-medium">
-          Choose your level to practice words from your <span class="text-amber-300 font-bold">Student's Book (Lists 1 & 2)</span>.
+          Choose your level to practice words from your <span class="text-amber-300 font-bold">Student's Book (Lists 1 &
+            2)</span>.
         </p>
       </header>
 
       <!-- Status Feedback Area (Loading e Erros) -->
       <div id="statusContainer" class="px-4 text-center shrink-0">
-        <div id="loadingStatus" class="hidden inline-flex items-center space-x-2 bg-slate-800/90 text-bee-400 px-4 py-1 rounded-full border border-bee-500/30 text-xs font-semibold shadow-lg">
+        <div id="loadingStatus"
+          class="hidden inline-flex items-center space-x-2 bg-slate-800/90 text-bee-400 px-4 py-1 rounded-full border border-bee-500/30 text-xs font-semibold shadow-lg">
           <svg class="w-4 h-4 animate-spin text-bee-400" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -195,12 +250,18 @@
           <span>Loading your words...</span>
         </div>
 
-        <div id="errorStatus" class="hidden bg-amber-500/10 text-amber-300 p-2 rounded-xl border border-amber-500/30 text-xs text-center space-y-1">
-          <p id="errorMessage" class="font-bold">We couldn't load today's words. Practicing with our backup list instead.</p>
+        <div id="errorStatus"
+          class="hidden bg-amber-500/10 text-amber-300 p-2 rounded-xl border border-amber-500/30 text-xs text-center space-y-1">
+          <p id="errorMessage" class="font-bold">We couldn't load today's words. Practicing with our backup list
+            instead.</p>
         </div>
 
-        <div id="demoBanner" class="hidden bg-amber-500/10 text-amber-300 px-3 py-1 rounded-lg border border-amber-500/20 text-[10px] text-center">
-          <svg class="w-3 h-3 text-amber-400 inline mr-1 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Today's words are ready!
+        <div id="demoBanner"
+          class="hidden bg-amber-500/10 text-amber-300 px-3 py-1 rounded-lg border border-amber-500/20 text-[10px] text-center">
+          <svg class="w-3 h-3 text-amber-400 inline mr-1 stroke-current fill-none" viewBox="0 0 24 24"
+            stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>Today's words are ready!
         </div>
       </div>
 
@@ -208,22 +269,30 @@
       <main class="flex-1 flex flex-col items-center justify-center my-auto py-1 space-y-2">
         <!-- Indicador com Affordance de Ação -->
         <div class="text-center mb-1">
-          <div class="inline-flex items-center space-x-2 bg-slate-800/90 py-1.5 px-4 rounded-full border border-bee-500/40 shadow-md">
-            <svg class="w-4 h-4 text-bee-400 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+          <div
+            class="inline-flex items-center space-x-2 bg-slate-800/90 py-1.5 px-4 rounded-full border border-bee-500/40 shadow-md">
+            <svg class="w-4 h-4 text-bee-400 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
             <span class="text-xs font-black text-bee-400 uppercase tracking-widest">PICK A LEVEL TO START</span>
           </div>
         </div>
 
         <!-- Estrutura do Favo de Mel (Hexágonos perfeitamente proporcionais) -->
         <div id="honeycombContainer" class="flex flex-col items-center space-y-1.5 sm:space-y-2 py-1">
-          
+
           <!-- Linha 1 do Favo: Nível J1 -->
           <div class="flex justify-center z-30">
             <div id="wrapper-J1" class="honeycomb-wrapper">
-              <button id="btnLevel-J1" onclick="selectLevel('J1')" class="honeycomb-hex-outer w-28 h-32 sm:w-32 sm:h-36 p-1.5 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-bee-400/50 rounded-xl" aria-label="Level J1">
-                <div class="honeycomb-hex-inner w-full h-full flex flex-col items-center justify-center text-slate-950 px-1 py-1.5 text-center select-none">
-                  <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-950/80 leading-none">LEVEL</span>
-                  <span class="font-display text-2xl sm:text-3xl font-black text-slate-950 tracking-tight my-0.5 drop-shadow-md">J1</span>
+              <button id="btnLevel-J1" onclick="selectLevel('J1')"
+                class="honeycomb-hex-outer w-28 h-32 sm:w-32 sm:h-36 p-1.5 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-bee-400/50 rounded-xl"
+                aria-label="Level J1">
+                <div
+                  class="honeycomb-hex-inner w-full h-full flex flex-col items-center justify-center text-slate-950 px-1 py-1.5 text-center select-none">
+                  <span
+                    class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-950/80 leading-none">LEVEL</span>
+                  <span
+                    class="font-display text-2xl sm:text-3xl font-black text-slate-950 tracking-tight my-0.5 drop-shadow-md">J1</span>
                 </div>
               </button>
             </div>
@@ -233,20 +302,30 @@
           <div class="flex justify-center space-x-3 sm:space-x-4 z-20">
             <!-- Nível J2 -->
             <div id="wrapper-J2" class="honeycomb-wrapper">
-              <button id="btnLevel-J2" onclick="selectLevel('J2')" class="honeycomb-hex-outer w-28 h-32 sm:w-32 sm:h-36 p-1.5 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-bee-400/50 rounded-xl" aria-label="Level J2">
-                <div class="honeycomb-hex-inner w-full h-full flex flex-col items-center justify-center text-slate-950 px-1 py-1.5 text-center select-none">
-                  <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-950/80 leading-none">LEVEL</span>
-                  <span class="font-display text-2xl sm:text-3xl font-black text-slate-950 tracking-tight my-0.5 drop-shadow-md">J2</span>
+              <button id="btnLevel-J2" onclick="selectLevel('J2')"
+                class="honeycomb-hex-outer w-28 h-32 sm:w-32 sm:h-36 p-1.5 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-bee-400/50 rounded-xl"
+                aria-label="Level J2">
+                <div
+                  class="honeycomb-hex-inner w-full h-full flex flex-col items-center justify-center text-slate-950 px-1 py-1.5 text-center select-none">
+                  <span
+                    class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-950/80 leading-none">LEVEL</span>
+                  <span
+                    class="font-display text-2xl sm:text-3xl font-black text-slate-950 tracking-tight my-0.5 drop-shadow-md">J2</span>
                 </div>
               </button>
             </div>
 
             <!-- Nível T1 -->
             <div id="wrapper-T1" class="honeycomb-wrapper">
-              <button id="btnLevel-T1" onclick="selectLevel('T1')" class="honeycomb-hex-outer w-28 h-32 sm:w-32 sm:h-36 p-1.5 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-bee-400/50 rounded-xl" aria-label="Level T1">
-                <div class="honeycomb-hex-inner w-full h-full flex flex-col items-center justify-center text-slate-950 px-1 py-1.5 text-center select-none">
-                  <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-950/80 leading-none">LEVEL</span>
-                  <span class="font-display text-2xl sm:text-3xl font-black text-slate-950 tracking-tight my-0.5 drop-shadow-md">T1</span>
+              <button id="btnLevel-T1" onclick="selectLevel('T1')"
+                class="honeycomb-hex-outer w-28 h-32 sm:w-32 sm:h-36 p-1.5 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-bee-400/50 rounded-xl"
+                aria-label="Level T1">
+                <div
+                  class="honeycomb-hex-inner w-full h-full flex flex-col items-center justify-center text-slate-950 px-1 py-1.5 text-center select-none">
+                  <span
+                    class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-950/80 leading-none">LEVEL</span>
+                  <span
+                    class="font-display text-2xl sm:text-3xl font-black text-slate-950 tracking-tight my-0.5 drop-shadow-md">T1</span>
                 </div>
               </button>
             </div>
@@ -255,10 +334,15 @@
           <!-- Linha 3 do Favo: Nível T2 -->
           <div class="flex justify-center z-10">
             <div id="wrapper-T2" class="honeycomb-wrapper">
-              <button id="btnLevel-T2" onclick="selectLevel('T2')" class="honeycomb-hex-outer w-28 h-32 sm:w-32 sm:h-36 p-1.5 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-bee-400/50 rounded-xl" aria-label="Level T2">
-                <div class="honeycomb-hex-inner w-full h-full flex flex-col items-center justify-center text-slate-950 px-1 py-1.5 text-center select-none">
-                  <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-950/80 leading-none">LEVEL</span>
-                  <span class="font-display text-2xl sm:text-3xl font-black text-slate-950 tracking-tight my-0.5 drop-shadow-md">T2</span>
+              <button id="btnLevel-T2" onclick="selectLevel('T2')"
+                class="honeycomb-hex-outer w-28 h-32 sm:w-32 sm:h-36 p-1.5 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-bee-400/50 rounded-xl"
+                aria-label="Level T2">
+                <div
+                  class="honeycomb-hex-inner w-full h-full flex flex-col items-center justify-center text-slate-950 px-1 py-1.5 text-center select-none">
+                  <span
+                    class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-950/80 leading-none">LEVEL</span>
+                  <span
+                    class="font-display text-2xl sm:text-3xl font-black text-slate-950 tracking-tight my-0.5 drop-shadow-md">T2</span>
                 </div>
               </button>
             </div>
@@ -268,28 +352,43 @@
       </main>
 
       <!-- Card de Valor Agregado: Gamificação Expandido & Balanceado -->
-      <div class="mx-auto w-full max-w-sm sm:max-w-md glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-xl text-center space-y-2 shrink-0 my-1">
+      <div
+        class="mx-auto w-full max-w-sm sm:max-w-md glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-xl text-center space-y-2 shrink-0 my-1">
         <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5 text-xs">
           <span class="font-extrabold text-xs sm:text-sm text-amber-300 flex items-center space-x-1.5">
-            <svg class="w-4 h-4 text-amber-300 fill-current" viewBox="0 0 24 24"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V18H8v2h8v-2h-3v-2.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
+            <svg class="w-4 h-4 text-amber-300 fill-current" viewBox="0 0 24 24">
+              <path
+                d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V18H8v2h8v-2h-3v-2.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z" />
+            </svg>
             <span>How It Works</span>
           </span>
-          <span class="text-[10px] font-bold text-slate-300 uppercase tracking-wider bg-slate-800 px-2.5 py-1 rounded-full">Rewards</span>
+          <span
+            class="text-[10px] font-bold text-slate-300 uppercase tracking-wider bg-slate-800 px-2.5 py-1 rounded-full">Rewards</span>
         </div>
-        
+
         <div class="grid grid-cols-3 gap-2 text-slate-300">
           <div class="bg-slate-950/70 p-2 rounded-xl border border-slate-800/70 flex flex-col items-center">
-            <svg class="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 24 24"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V18H8v2h8v-2h-3v-2.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
+            <svg class="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 24 24">
+              <path
+                d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V18H8v2h8v-2h-3v-2.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z" />
+            </svg>
             <span class="font-extrabold text-amber-400 mt-1 text-xs">+10 pts</span>
             <span class="text-[10px] text-slate-400 font-medium">per correct</span>
           </div>
           <div class="bg-slate-950/70 p-2 rounded-xl border border-slate-800/70 flex flex-col items-center">
-            <svg class="w-4 h-4 text-amber-400 fill-amber-400 stroke-amber-300" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <svg class="w-4 h-4 text-amber-400 fill-amber-400 stroke-amber-300" viewBox="0 0 24 24" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
             <span class="font-extrabold text-amber-400 mt-1 text-xs">Streak</span>
             <span class="text-[10px] text-slate-400 font-medium">in a row</span>
           </div>
           <div class="bg-slate-950/70 p-2 rounded-xl border border-slate-800/70 flex flex-col items-center">
-            <svg class="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+            <svg class="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+              <path
+                d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+            </svg>
             <span class="font-extrabold text-amber-400 mt-1 text-xs">3 Modes</span>
             <span class="text-[10px] text-slate-400 font-medium">Practice, Typing & Voice</span>
           </div>
@@ -306,13 +405,15 @@
     <!-- ========================================== -->
     <!-- TELA 2: PRÁTICA E DESAFIO                  -->
     <!-- ========================================== -->
-    <section id="screenPractice" class="flex-1 flex flex-col justify-between p-3.5 sm:p-5 relative z-10 hidden overflow-hidden h-full">
-      
+    <section id="screenPractice"
+      class="flex-1 flex flex-col justify-between p-3.5 sm:p-5 relative z-10 hidden overflow-hidden h-full">
+
       <!-- Header Tela 2 (Alinhamento em 3 Colunas Perfeitamente Balanceado) -->
       <header class="pt-1 pb-2 grid grid-cols-3 items-center border-b border-slate-800/80 shrink-0">
         <!-- Coluna 1 (Esquerda): Botão Voltar -->
         <div class="flex justify-start">
-          <button id="btnBackHome" class="flex items-center space-x-1 text-slate-300 hover:text-white transition-colors py-1 px-2 rounded-lg hover:bg-slate-800/50">
+          <button id="btnBackHome"
+            class="flex items-center space-x-1 text-slate-300 hover:text-white transition-colors py-1 px-2 rounded-lg hover:bg-slate-800/50">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
             </svg>
@@ -322,7 +423,8 @@
 
         <!-- Coluna 2 (Centro): Badge Nível sobreposto à Frase "CAN YOU SPELL...?" -->
         <div class="flex flex-col items-center justify-center text-center">
-          <span id="currentLevelBadge" class="text-xs font-semibold uppercase tracking-wider bg-slate-800 text-amber-300 px-3 py-0.5 rounded-full border border-amber-500/30 mb-0.5 shadow-sm">
+          <span id="currentLevelBadge"
+            class="text-xs font-semibold uppercase tracking-wider bg-slate-800 text-amber-300 px-3 py-0.5 rounded-full border border-amber-500/30 mb-0.5 shadow-sm">
             Level J1
           </span>
           <h2 class="font-display text-xs sm:text-sm font-black text-slate-100 tracking-tight leading-none">
@@ -332,7 +434,8 @@
 
         <!-- Coluna 3 (Direita): Progresso de Palavras -->
         <div class="flex justify-end">
-          <span id="wordProgress" class="text-sm font-semibold text-slate-200 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700/80 shadow-sm">
+          <span id="wordProgress"
+            class="text-sm font-semibold text-slate-200 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700/80 shadow-sm">
             0 / 0
           </span>
         </div>
@@ -340,52 +443,76 @@
 
       <!-- SELETOR DE MODO DE JOGO (PRÁTICA vs DESAFIO DIGITAÇÃO vs VOZ) -->
       <div class="my-1.5 flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 justify-between shrink-0">
-        <button id="tabModePractice" onclick="switchGameMode('practice')" class="flex-1 py-1 text-xs font-bold rounded-lg transition-all bg-bee-500 text-slate-950 shadow-md flex items-center justify-center space-x-1">
-          <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        <button id="tabModePractice" onclick="switchGameMode('practice')"
+          class="flex-1 py-1 text-xs font-bold rounded-lg transition-all bg-bee-500 text-slate-950 shadow-md flex items-center justify-center space-x-1">
+          <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
           <span>Practice</span>
         </button>
-        <button id="tabModeChallenge" onclick="switchGameMode('challenge')" class="flex-1 py-1 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white flex items-center justify-center space-x-1">
-          <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        <button id="tabModeChallenge" onclick="switchGameMode('challenge')"
+          class="flex-1 py-1 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white flex items-center justify-center space-x-1">
+          <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
           <span>Typing</span>
         </button>
-        <button id="tabModeVoice" onclick="switchGameMode('voice')" class="flex-1 py-1 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white flex items-center justify-center space-x-1">
-          <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+        <button id="tabModeVoice" onclick="switchGameMode('voice')"
+          class="flex-1 py-1 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white flex items-center justify-center space-x-1">
+          <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
           <span>Voice</span>
         </button>
       </div>
 
       <!-- Corpo: Card de Interação -->
       <main class="flex-1 flex flex-col items-center justify-center my-1 space-y-3 overflow-hidden">
-        
+
         <!-- CONTROLES DE ÁUDIO (SPEAKER + VELOCIDADE + DICA) -->
         <div class="flex items-center space-x-3 shrink-0">
           <!-- Botão Velocidade (Normal vs 0.7x Slow) - Neutro -->
-          <button id="btnAudioSpeed" onclick="toggleAudioSpeed()" title="Slow down audio" class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-100 hover:text-white border border-slate-700/80 flex items-center justify-center text-xs font-bold shadow-md transition-all active:scale-95">
+          <button id="btnAudioSpeed" onclick="toggleAudioSpeed()" title="Slow down audio"
+            class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-100 hover:text-white border border-slate-700/80 flex items-center justify-center text-xs font-bold shadow-md transition-all active:scale-95">
             1.0x
           </button>
 
           <!-- Botão Grande de Áudio (Speaker Circular) - Elemento mais vibrante da tela -->
           <div class="relative group">
-            <div class="absolute -inset-1.5 bg-gradient-to-r from-bee-500 to-amber-600 rounded-full blur-md opacity-50 group-hover:opacity-80 transition duration-300 audio-pulse"></div>
-            
-            <button id="btnPlayAudio" aria-label="Listen to word pronunciation" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-bee-400 to-bee-600 hover:from-bee-300 hover:to-bee-500 active:scale-95 text-slate-950 shadow-xl flex flex-col items-center justify-center transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-bee-400/50">
-              <svg class="w-8 h-8 sm:w-10 sm:h-10 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div
+              class="absolute -inset-1.5 bg-gradient-to-r from-bee-500 to-amber-600 rounded-full blur-md opacity-50 group-hover:opacity-80 transition duration-300 audio-pulse">
+            </div>
+
+            <button id="btnPlayAudio" aria-label="Listen to word pronunciation"
+              class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-bee-400 to-bee-600 hover:from-bee-300 hover:to-bee-500 active:scale-95 text-slate-950 shadow-xl flex flex-col items-center justify-center transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-bee-400/50">
+              <svg class="w-8 h-8 sm:w-10 sm:h-10 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                 <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
               </svg>
-              <span id="speedLabel" class="text-[9px] font-extrabold uppercase tracking-widest mt-0.5 text-slate-900/80">Listen</span>
+              <span id="speedLabel"
+                class="text-[9px] font-extrabold uppercase tracking-widest mt-0.5 text-slate-900/80">Listen</span>
             </button>
           </div>
 
           <!-- Botão Dica - Neutro com Ícone Branco -->
-          <button id="btnHint" onclick="showHint()" title="Get a Hint" class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-100 hover:text-white border border-slate-700/80 flex items-center justify-center text-xs shadow-md transition-all active:scale-95">
-            <svg class="w-4 h-4 text-slate-100 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 14H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          <button id="btnHint" onclick="showHint()" title="Get a Hint"
+            class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-100 hover:text-white border border-slate-700/80 flex items-center justify-center text-xs shadow-md transition-all active:scale-95">
+            <svg class="w-4 h-4 text-slate-100 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 14H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
           </button>
         </div>
 
         <!-- Indicador de Status do Áudio -->
-        <div id="audioFeedback" class="text-[11px] text-slate-400 opacity-0 transition-opacity duration-300 h-3 flex items-center space-x-1 shrink-0">
+        <div id="audioFeedback"
+          class="text-[11px] text-slate-400 opacity-0 transition-opacity duration-300 h-3 flex items-center space-x-1 shrink-0">
           <svg class="w-3 h-3 text-bee-400 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -394,44 +521,61 @@
         </div>
 
         <!-- CAIXA DE DICA (Oculta por padrão) -->
-        <div id="hintBox" class="hidden w-full bg-amber-500/10 border border-amber-500/30 p-2 rounded-xl text-xs text-center text-amber-300 shrink-0">
-          <svg class="w-3.5 h-3.5 text-amber-300 stroke-current fill-none inline mr-1" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span id="hintText">Hint...</span>
+        <div id="hintBox"
+          class="hidden w-full bg-amber-500/10 border border-amber-500/30 p-2 rounded-xl text-xs text-center text-amber-300 shrink-0">
+          <svg class="w-3.5 h-3.5 text-amber-300 stroke-current fill-none inline mr-1" viewBox="0 0 24 24"
+            stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg><span id="hintText">Hint...</span>
         </div>
 
         <!-- CARD 1: MODO REVELAÇÃO (PRÁTICA SIMPLES ALINHADA AO DESENHO ENVIADO) -->
-        <div id="revealCard" class="w-full glass-card rounded-2xl p-4 sm:p-5 text-center relative overflow-hidden transition-all duration-300 shadow-2xl border border-slate-700/50 flex flex-col items-center justify-center min-h-[160px] sm:min-h-[190px]">
-          
+        <div id="revealCard"
+          class="w-full glass-card rounded-2xl p-4 sm:p-5 text-center relative overflow-hidden transition-all duration-300 shadow-2xl border border-slate-700/50 flex flex-col items-center justify-center min-h-[160px] sm:min-h-[190px]">
+
           <!-- ESTADO 1: RESPOSTA OCULTA (SPELL WHAT YOU HEARD + SHOW ME) -->
-          <div id="revealHiddenArea" class="flex flex-col items-center justify-center space-y-3 py-1 w-full animate-fade-in">
-            <h3 class="font-display text-xs sm:text-sm font-bold tracking-wider text-amber-300 uppercase max-w-xs leading-relaxed text-center">
+          <div id="revealHiddenArea"
+            class="flex flex-col items-center justify-center space-y-3 py-1 w-full animate-fade-in">
+            <h3
+              class="font-display text-xs sm:text-sm font-bold tracking-wider text-amber-300 uppercase max-w-xs leading-relaxed text-center">
               SPELL WHAT YOU HEARD
             </h3>
-            
-            <button onclick="toggleRevealAnswer()" class="group flex items-center justify-center space-x-2 bg-slate-800/90 hover:bg-bee-500 hover:text-slate-950 text-bee-400 font-semibold px-5 py-2 rounded-full border border-bee-500/40 shadow-lg transition-all duration-200 active:scale-95">
-              <svg class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+
+            <button onclick="toggleRevealAnswer()"
+              class="group flex items-center justify-center space-x-2 bg-slate-800/90 hover:bg-bee-500 hover:text-slate-950 text-bee-400 font-semibold px-5 py-2 rounded-full border border-bee-500/40 shadow-lg transition-all duration-200 active:scale-95">
+              <svg class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24" stroke-width="2.2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
               <span class="text-[11px] uppercase tracking-wider font-extrabold">SHOW ME</span>
             </button>
           </div>
 
           <!-- ESTADO 2: RESPOSTA REVELADA (H-O-U-S-E + Example: "MY HOUSE IS BIG" + HIDE IT) -->
-          <div id="revealShownArea" class="hidden flex flex-col items-center justify-center space-y-3 py-1 w-full animate-fade-in">
+          <div id="revealShownArea"
+            class="hidden flex flex-col items-center justify-center space-y-3 py-1 w-full animate-fade-in">
             <!-- Palavra Soletrada -->
-            <div id="displayWord" class="font-display text-2xl sm:text-3xl font-black tracking-widest text-bee-400 break-words text-center">
+            <div id="displayWord"
+              class="font-display text-2xl sm:text-3xl font-black tracking-widest text-bee-400 break-words text-center">
               W-O-R-D
             </div>
 
             <!-- Frase Exemplo (Example: "...") -->
-            <p id="displaySentence" class="text-slate-300 italic text-xs leading-relaxed bg-slate-950/40 px-3.5 py-2 rounded-xl border border-slate-800/60 max-w-xs text-center">
+            <p id="displaySentence"
+              class="text-slate-300 italic text-xs leading-relaxed bg-slate-950/40 px-3.5 py-2 rounded-xl border border-slate-800/60 max-w-xs text-center">
               Example: "Context sentence placeholder."
             </p>
 
             <!-- Botão Esconder Palavra -->
-            <button onclick="toggleRevealAnswer()" class="group flex items-center justify-center space-x-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold px-5 py-1.5 rounded-full border border-slate-700 shadow-md transition-all duration-200 active:scale-95">
-              <svg class="w-3.5 h-3.5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 0110.123 6.937 9.97 9.97 0 01-1.563 3.029m-5.858 5.908L3 3l18 18" />
+            <button onclick="toggleRevealAnswer()"
+              class="group flex items-center justify-center space-x-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold px-5 py-1.5 rounded-full border border-slate-700 shadow-md transition-all duration-200 active:scale-95">
+              <svg class="w-3.5 h-3.5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 0110.123 6.937 9.97 9.97 0 01-1.563 3.029m-5.858 5.908L3 3l18 18" />
               </svg>
               <span class="text-[10px] uppercase tracking-wider font-extrabold">HIDE IT</span>
             </button>
@@ -440,17 +584,26 @@
         </div>
 
         <!-- CARD 2: MODO DESAFIO DIGITAÇÃO -->
-        <div id="typingCard" class="hidden w-full glass-card rounded-2xl p-4 text-center relative overflow-hidden transition-all duration-300 shadow-2xl border border-slate-700/50 space-y-3">
-          <p id="typingSentence" class="text-slate-300 italic text-xs leading-relaxed bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
-            <svg class="w-3.5 h-3.5 text-amber-400 stroke-current fill-none inline mr-1" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14M11 5L6 9H2v6h4l5 4V5z"/></svg><span class="text-amber-400 font-bold">Tap LISTEN</span> above to unlock typing.
+        <div id="typingCard"
+          class="hidden w-full glass-card rounded-2xl p-4 text-center relative overflow-hidden transition-all duration-300 shadow-2xl border border-slate-700/50 space-y-3">
+          <p id="typingSentence"
+            class="text-slate-300 italic text-xs leading-relaxed bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+            <svg class="w-3.5 h-3.5 text-amber-400 stroke-current fill-none inline mr-1" viewBox="0 0 24 24"
+              stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14M11 5L6 9H2v6h4l5 4V5z" />
+            </svg><span class="text-amber-400 font-bold">Tap LISTEN</span> above to unlock typing.
           </p>
 
           <form id="formTyping" onsubmit="handleTypingSubmit(event)" class="space-y-2.5">
             <div class="relative">
-              <input type="text" id="inputSpelling" disabled autocomplete="off" spellcheck="false" placeholder="🔒 LISTEN FIRST" class="w-full bg-slate-950/80 border-2 border-bee-500/40 rounded-xl py-2.5 px-3 text-center font-display text-xl font-black tracking-widest text-bee-400 placeholder:text-slate-600 focus:outline-none focus:border-bee-400 opacity-40 cursor-not-allowed uppercase transition-all" />
+              <input type="text" id="inputSpelling" disabled autocomplete="off" spellcheck="false"
+                placeholder="🔒 LISTEN FIRST"
+                class="w-full bg-slate-950/80 border-2 border-bee-500/40 rounded-xl py-2.5 px-3 text-center font-display text-xl font-black tracking-widest text-bee-400 placeholder:text-slate-600 focus:outline-none focus:border-bee-400 opacity-40 cursor-not-allowed uppercase transition-all" />
             </div>
 
-            <button type="submit" id="btnCheckTyping" disabled class="w-full bg-bee-500 hover:bg-bee-400 active:scale-95 text-slate-950 font-bold py-2.5 px-5 rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 text-xs opacity-40 cursor-not-allowed">
+            <button type="submit" id="btnCheckTyping" disabled
+              class="w-full bg-bee-500 hover:bg-bee-400 active:scale-95 text-slate-950 font-bold py-2.5 px-5 rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 text-xs opacity-40 cursor-not-allowed">
               <span>CHECK</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -463,26 +616,32 @@
         </div>
 
         <!-- CARD 3: MODO RECONHECIMENTO DE VOZ (REGRA WORD - SPELLING - WORD) -->
-        <div id="voiceCard" class="hidden w-full glass-card rounded-2xl p-4 text-center relative overflow-hidden transition-all duration-300 shadow-2xl border border-slate-700/50 space-y-3">
+        <div id="voiceCard"
+          class="hidden w-full glass-card rounded-2xl p-4 text-center relative overflow-hidden transition-all duration-300 shadow-2xl border border-slate-700/50 space-y-3">
           <div class="space-y-1">
             <p class="text-xs font-semibold text-slate-300">Say it, spell it, say it again</p>
-            <p class="text-sm sm:text-base font-sans font-medium text-slate-200 bg-slate-950/50 py-1 px-3.5 rounded-lg border border-slate-800 inline-block">
+            <p
+              class="text-sm sm:text-base font-sans font-medium text-slate-200 bg-slate-950/50 py-1 px-3.5 rounded-lg border border-slate-800 inline-block">
               Example: "Apple, A-P-P-L-E, Apple"
             </p>
           </div>
-          
+
           <div class="relative flex flex-col items-center justify-center pt-1">
-            <button id="btnMic" onclick="toggleVoiceRecognition()" aria-label="Tap microphone to start speaking" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-100 hover:bg-white text-slate-950 border-4 border-slate-300/40 flex items-center justify-center transition-all duration-200 active:scale-95 shadow-2xl focus:outline-none focus:ring-4 focus:ring-slate-400/50">
+            <button id="btnMic" onclick="toggleVoiceRecognition()" aria-label="Tap microphone to start speaking"
+              class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-100 hover:bg-white text-slate-950 border-4 border-slate-300/40 flex items-center justify-center transition-all duration-200 active:scale-95 shadow-2xl focus:outline-none focus:ring-4 focus:ring-slate-400/50">
               <svg id="micIcon" class="w-9 h-9 sm:w-10 sm:h-10 fill-current" viewBox="0 0 24 24">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                <path
+                  d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
               </svg>
             </button>
-            <p id="voicePromptText" class="text-sm font-medium text-slate-300 text-center mt-2.5">Tap the mic to start</p>
+            <p id="voicePromptText" class="text-sm font-medium text-slate-300 text-center mt-2.5">Tap the mic to start
+            </p>
           </div>
 
           <!-- Caixa de Transcrição e Feedback Fonético (Exibida dinamicamente durante/após a fala) -->
-          <div id="voiceTranscript" class="hidden min-h-[40px] bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 text-xs font-sans text-bee-300 flex flex-col items-center justify-center space-y-0.5">
+          <div id="voiceTranscript"
+            class="hidden min-h-[40px] bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 text-xs font-sans text-bee-300 flex flex-col items-center justify-center space-y-0.5">
           </div>
         </div>
 
@@ -490,7 +649,8 @@
 
       <!-- Rodapé: Botão Next ("NEXT WORD") - SEMPRE VISÍVEL SEM SCROLL -->
       <footer class="pt-1.5 pb-2 shrink-0">
-        <button id="btnNextWord" class="w-full bg-gradient-to-r from-bee-500 via-amber-500 to-bee-600 hover:from-bee-400 hover:to-bee-500 text-slate-950 font-display font-extrabold text-base sm:text-lg py-3 px-5 rounded-full shadow-lg shadow-bee-500/25 hover:shadow-bee-500/40 active:scale-[0.98] transition-all duration-200 flex items-center justify-center space-x-2">
+        <button id="btnNextWord"
+          class="w-full bg-gradient-to-r from-bee-500 via-amber-500 to-bee-600 hover:from-bee-400 hover:to-bee-500 text-slate-950 font-display font-extrabold text-base sm:text-lg py-3 px-5 rounded-full shadow-lg shadow-bee-500/25 hover:shadow-bee-500/40 active:scale-[0.98] transition-all duration-200 flex items-center justify-center space-x-2">
           <span>NEXT WORD</span>
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -630,7 +790,7 @@
       try {
         initAudioContext();
         if (!state.audioContext) return;
-        
+
         const ctx = state.audioContext;
         const now = ctx.currentTime;
 
@@ -831,14 +991,14 @@
       playSoundFx('click');
       state.currentLevel = level;
       state.filteredWords = allWords.filter(w => w.level === level);
-      
+
       if (state.filteredWords.length === 0) {
         alert(`No words available for this level yet. Try another one!`);
         return;
       }
 
       elements.currentLevelBadge.textContent = `Level ${level}`;
-      
+
       elements.screenHome.classList.add('hidden');
       elements.screenHome.classList.remove('block');
       elements.screenPractice.classList.remove('hidden');
@@ -948,7 +1108,7 @@
       showAudioLoading(true);
 
       const audioSource = state.currentWord.audio_url || state.currentWord.audioUrl;
-      
+
       if (audioSource && audioSource.trim() !== "") {
         state.audioPlayer.src = audioSource;
         state.audioPlayer.playbackRate = state.audioSpeed;
@@ -972,14 +1132,14 @@
     function speakWithTTS(wordText) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        
+
         const utterance = new SpeechSynthesisUtterance(wordText);
         utterance.lang = 'en-US';
         utterance.rate = state.audioSpeed === 1.0 ? 0.85 : 0.6;
-        
+
         utterance.onend = () => showAudioLoading(false);
         utterance.onerror = () => showAudioLoading(false);
-        
+
         window.speechSynthesis.speak(utterance);
       } else {
         showAudioLoading(false);
@@ -1157,7 +1317,7 @@
      * 7. ENGINE DE INTELIGÊNCIA FONÉTICA (VOCABULARY BIASING & MAPA DE CONFUSÃO)
      * =========================================================================
      */
-    
+
     // TABELA DE NORMALIZAÇÃO DE NOMES DE LETRAS EM INGLES
     const ENGLISH_LETTER_MAP = {
       "EY": "A", "AY": "A", "A": "A",
@@ -1243,7 +1403,7 @@
       if (!tokens || !tokens.length) return "";
       let letterArray = [];
       let i = 0;
-      
+
       while (i < tokens.length) {
         const current = tokens[i];
         const next = tokens[i + 1];
@@ -1254,7 +1414,7 @@
             i += 2;
             continue;
           }
-          
+
           const mappedNext = ENGLISH_LETTER_MAP[next] || (next.length === 1 ? next : null);
           if (mappedNext) {
             letterArray.push(mappedNext);
@@ -1263,7 +1423,7 @@
             continue;
           }
         }
-        
+
         // Verifica token composto (ex: "DOUBLEP")
         if (current.startsWith("DOUBLE") && current.length > 6) {
           const letterPart = current.slice(6);
@@ -1280,7 +1440,7 @@
             continue;
           }
         }
-        
+
         // Mapeamento padrão de nome de letra
         const mapped = ENGLISH_LETTER_MAP[current];
         if (mapped) {
@@ -1294,10 +1454,10 @@
         } else if (current.length === 1) {
           letterArray.push(current);
         }
-        
+
         i++;
       }
-      
+
       return letterArray.join('');
     }
 
@@ -1328,17 +1488,17 @@
           const upperWord = targetWord.toUpperCase();
           const uniqueLetters = [...new Set(upperWord.split(''))];
           const spelledWithSpaces = upperWord.split('').join(' ');
-          
+
           let items = [...uniqueLetters, spelledWithSpaces, upperWord, "DOUBLE"];
-          
+
           for (let i = 0; i < upperWord.length - 1; i++) {
             if (upperWord[i] === upperWord[i + 1]) {
               items.push(`DOUBLE ${upperWord[i]}`);
             }
           }
-          
+
           const grammarString = `#JSGF V1.0; grammar spelling; public <item> = ${items.join(' | ')} ;`;
-          
+
           const grammarList = new SpeechGrammarList();
           grammarList.addFromString(grammarString, 1.0);
           recognitionInstance.grammars = grammarList;
@@ -1394,7 +1554,7 @@
       const formattedWord = target.charAt(0).toUpperCase() + target.slice(1).toLowerCase();
       const hyphenatedSpelling = target.split('').join(' - ');
       const cleanDisplayText = `${formattedWord} ${hyphenatedSpelling} ${formattedWord}`;
-      
+
       for (let i = 0; i < eventResults[0].length; i++) {
         const raw = eventResults[0][i].transcript;
         const cleanRaw = raw.toUpperCase().replace(/[^A-Z\s]/g, ' ').trim();
@@ -1535,7 +1695,7 @@
             </div>
             <p class="text-[11px] text-emerald-200">You said: "${evaluation.displayText || evaluation.raw}" (+10 pts)</p>
           `;
-          
+
           setTimeout(() => {
             pickNextWord();
           }, 1800);
@@ -1588,7 +1748,7 @@
             <p class="text-[11px] text-rose-200">We heard: <strong>"${evaluation.raw}"</strong></p>
             <p class="text-[10px] text-rose-400/80">Try saying: "${formattedTarget}, ${hyphenatedTarget}, ${formattedTarget}"</p>
           `;
-          
+
           setTimeout(() => {
             transcriptEl.classList.remove('animate-shake');
           }, 600);
@@ -1629,4 +1789,5 @@
     document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
+
 </html>

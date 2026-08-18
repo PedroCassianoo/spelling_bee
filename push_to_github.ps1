@@ -20,7 +20,8 @@ $status = git status --porcelain
 if ($status) {
     Write-Host "Criando commit..."
     git commit -m "feat: sync project structure at C:\Projetos Gemini\Red News with GitHub, Vercel and Supabase"
-} else {
+}
+else {
     Write-Host "Nenhuma alteracao pendente para commit."
 }
 
