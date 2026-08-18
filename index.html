@@ -467,7 +467,7 @@
           <div class="space-y-1">
             <p class="text-xs font-semibold text-slate-300">Say it, spell it, say it again</p>
             <p class="text-sm sm:text-base font-sans font-medium text-slate-200 bg-slate-950/50 py-1 px-3.5 rounded-lg border border-slate-800 inline-block">
-              Example: "Apple, A-P-P-L-E, Apple"
+              Example: "Star, S-T-A-R, Star"
             </p>
           </div>
           
@@ -1025,6 +1025,7 @@
       } else if (mode === 'voice') {
         tabVoice.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-bee-500 text-slate-950 shadow-md flex items-center justify-center space-x-1";
         elements.voiceCard.classList.remove('hidden');
+        resetVoiceCard();
       }
     }
 
@@ -1127,7 +1128,10 @@
 
     function resetVoiceCard() {
       const promptEl = document.getElementById('voicePromptText');
-      if (promptEl) promptEl.classList.remove('hidden');
+      if (promptEl) {
+        promptEl.classList.remove('hidden');
+        promptEl.textContent = 'Tap the mic to start';
+      }
       const transcriptEl = document.getElementById('voiceTranscript');
       if (transcriptEl) {
         transcriptEl.classList.add('hidden');
@@ -1506,12 +1510,10 @@
         const transcriptEl = document.getElementById('voiceTranscript');
         transcriptEl.classList.remove('hidden');
         transcriptEl.className = "min-h-[50px] bg-bee-500/10 p-3.5 rounded-xl border border-bee-500/30 text-xs font-sans text-bee-300 flex flex-col items-center justify-center space-y-1 animate-pulse";
-        const formattedWord = state.currentWord.word.toUpperCase();
-        const hyphenatedSpelling = formattedWord.split('').join('-');
         transcriptEl.innerHTML = `
           <div class="flex items-center space-x-2">
             <span class="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>
-            <span class="font-bold text-amber-300"><svg class="w-3.5 h-3.5 text-amber-400 fill-current inline mr-1" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>Listening... Say it like this: "${formattedWord}, ${hyphenatedSpelling}, ${formattedWord}"</span>
+            <span class="font-bold text-amber-300"><svg class="w-3.5 h-3.5 text-amber-400 fill-current inline mr-1" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>Listening... Say the word, spell it, and say it again!</span>
           </div>
         `;
       };
@@ -1565,13 +1567,11 @@
 
         } else if (evaluation.type === 'INVALID_SEQUENCE') {
           playSoundFx('error');
-          const formattedTarget = evaluation.target;
-          const hyphenatedTarget = formattedTarget.split('').join('-');
           transcriptEl.className = "min-h-[50px] bg-amber-500/20 p-3.5 rounded-xl border border-amber-500/40 text-xs font-sans text-amber-300 flex flex-col items-center justify-center space-y-1 block animate-shake";
           transcriptEl.innerHTML = `
-            <div class="font-bold text-amber-300 flex items-center justify-center"><svg class="w-4 h-4 text-amber-400 stroke-current fill-none inline mr-1" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>ALMOST! Don't forget to say the word first and last.</div>
-            <p class="text-[11px] text-amber-200">Try saying: <strong>"${formattedTarget}, ${hyphenatedTarget}, ${formattedTarget}"</strong></p>
-            <p class="text-[10px] text-amber-400/80">Remember to say the word before and after spelling!</p>
+            <div class="font-bold text-amber-300 flex items-center justify-center"><svg class="w-4 h-4 text-amber-400 stroke-current fill-none inline mr-1" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>ALMOST! Follow the 3-step rule:</div>
+            <p class="text-[11px] text-amber-200">1. Say the word &bull; 2. Spell it letter by letter &bull; 3. Say the word again</p>
+            <p class="text-[10px] text-amber-400/80">We heard: "${evaluation.raw || '...'}"</p>
           `;
           setTimeout(() => transcriptEl.classList.remove('animate-shake'), 600);
 
@@ -1580,13 +1580,11 @@
           state.streak = 0;
           updateGamificationDisplay();
 
-          const formattedTarget = evaluation.target;
-          const hyphenatedTarget = formattedTarget.split('').join('-');
           transcriptEl.className = "min-h-[50px] bg-rose-500/20 p-3.5 rounded-xl border border-rose-500/40 text-xs font-sans text-rose-300 flex flex-col items-center justify-center space-y-1 block animate-shake";
           transcriptEl.innerHTML = `
             <div class="font-bold text-rose-300 flex items-center justify-center"><svg class="w-4 h-4 text-rose-400 stroke-current fill-none inline mr-1" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>Not quite, try again!</div>
-            <p class="text-[11px] text-rose-200">We heard: <strong>"${evaluation.raw}"</strong></p>
-            <p class="text-[10px] text-rose-400/80">Try saying: "${formattedTarget}, ${hyphenatedTarget}, ${formattedTarget}"</p>
+            <p class="text-[11px] text-rose-200">We heard: <strong>"${evaluation.raw || '...'}"</strong></p>
+            <p class="text-[10px] text-rose-400/80">Listen to the pronunciation and try again.</p>
           `;
           
           setTimeout(() => {
@@ -1597,8 +1595,10 @@
 
       state.recognition.onerror = (e) => {
         const transcriptEl = document.getElementById('voiceTranscript');
-        transcriptEl.className = "min-h-[50px] bg-slate-900 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-rose-400";
-        transcriptEl.textContent = "We couldn't hear you. Check your microphone and try again.";
+        if (transcriptEl) {
+          transcriptEl.className = "min-h-[50px] bg-slate-900 p-3.5 rounded-xl border border-slate-800 text-xs font-sans text-rose-400 flex items-center justify-center";
+          transcriptEl.textContent = "We couldn't hear you. Check your microphone and try again.";
+        }
       };
 
       try {
