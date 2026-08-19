@@ -1,16 +1,19 @@
 // ollamaClient.js
-// Isola toda a comunicacao com o Ollama. Se amanha vocês trocarem de modelo,
-// de host, ou ate de motor de inferencia, so esse arquivo muda.
+// Isola toda a comunicação com o Ollama e garante conformidade estrita com
+// as regras do Spelling Bee (3 Passos, Letras Duplas, Delimitadores, Tolerância Acústica).
 
 import { CONFIG, VALIDATION_RESPONSE_SCHEMA } from './config.js';
 import { buildSpellingJudgePrompt } from './promptBuilder.js';
+import { validateSpellingStructure } from './sequenceValidator.js';
 
 /**
- * Chama o Gemma via Ollama para julgar uma tentativa de soletracao.
- * Lanca erro em caso de timeout, falha de rede, HTTP nao-ok, ou JSON invalido/incompleto,
- * para que o caller (server.js) decida o que responder ao frontend.
+ * Chama o Gemma via Ollama para julgar uma tentativa de soletração.
+ * Garante que nenhuma alucinação do modelo fira as regras do Spelling Bee.
  */
-export async function judgeSpellingAttempt(targetWord, transcriptRaw, level) {
+export async function judgeSpellingAttempt(targetWord, transcriptRaw, level = 'J1') {
+  // 1. Validação estrutural rigorosa das regras oficiais (POP)
+  const structuralVerdict = validateSpellingStructure(targetWord, transcriptRaw);
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CONFIG.OLLAMA_TIMEOUT_MS);
 
@@ -23,13 +26,13 @@ export async function judgeSpellingAttempt(targetWord, transcriptRaw, level) {
         model: CONFIG.MODEL_NAME,
         prompt: buildSpellingJudgePrompt(targetWord, transcriptRaw, level),
         stream: false,
-        format: VALIDATION_RESPONSE_SCHEMA, // forca JSON valido no schema certo
-        keep_alive: '60m', // mantem o modelo quente na memoria entre chamadas
+        format: VALIDATION_RESPONSE_SCHEMA,
+        keep_alive: '60m',
         options: {
-          temperature: 0.0, // deterministico e mais rapido
-          num_thread: 14, // otimizado para os 16 threads do Ryzen 7
-          num_ctx: 256, // reduz alocacao de memoria e acelera prompt eval
-          num_predict: 45, // resposta concisa, latencia ultra-baixa
+          temperature: 0.0,
+          num_thread: 14,
+          num_ctx: 384,
+          num_predict: 70,
         },
       }),
     });
@@ -50,13 +53,42 @@ export async function judgeSpellingAttempt(targetWord, transcriptRaw, level) {
       throw new Error('malformed_llm_response');
     }
 
+    // 2. Trava 1 (Antialucinação Positiva):
+    // Se a regra dos 3 passos foi violada estruturalmente (ex: faltou palavra no início ou no fim),
+    // NUNCA aceitar como correto.
+    if (!structuralVerdict.correct && structuralVerdict.matchType === 'INVALID_SEQUENCE') {
+      return {
+        correct: false,
+        matchType: 'INVALID_SEQUENCE',
+        heard: structuralVerdict.heard || parsed.heard,
+        explanation: structuralVerdict.explanation || parsed.explanation,
+        confidence: 1.0,
+      };
+    }
+
+    // 3. Trava 2 (Antialucinação Negativa):
+    // Se todos os 3 passos foram cumpridos e as letras conferem (ex: tolerância a ruído de STT tipo "have here"),
+    // e o modelo erroneamente marcou INVALID_SEQUENCE, reconciliar para AMBIGUOUS.
+    if (structuralVerdict.correct && (structuralVerdict.matchType === 'EXACT' || structuralVerdict.matchType === 'AMBIGUOUS')) {
+      if (!parsed.correct || parsed.matchType === 'INVALID_SEQUENCE' || parsed.matchType === 'NONE') {
+        return structuralVerdict;
+      }
+    }
+
     return {
       correct: parsed.correct,
       matchType: parsed.matchType,
-      heard: parsed.heard,
-      explanation: parsed.explanation,
-      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : null,
+      heard: parsed.heard || structuralVerdict.heard,
+      explanation: parsed.explanation || structuralVerdict.explanation,
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 1.0,
     };
+  } catch (err) {
+    // Se o Ollama estiver offline ou der timeout, usa o veredito estrutural nativo de alta precisão
+    if (err.name === 'AbortError' || err.message?.includes('fetch') || err.message?.includes('ECONNREFUSED')) {
+      console.warn(`[ollamaClient] ⚡ Fallback para validação estrutural nativa (${err.message || err.name})`);
+      return structuralVerdict;
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }

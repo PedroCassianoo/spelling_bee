@@ -1409,6 +1409,17 @@
       "HYPHEN", "DASH", "DOT", "PERIOD", "COMMA"
     ]);
 
+    function isSpellingToken(t) {
+      if (!t) return false;
+      const up = t.toUpperCase();
+      if (SPELLING_DELIMITER_TOKENS.has(up)) return true;
+      if (up === 'DOUBLE' || up === 'TWO') return true;
+      if (up.startsWith('DOUBLE') && up.length > 6) return true;
+      if (ENGLISH_LETTER_MAP[up] && up.length <= 4) return true;
+      if (up.length === 1 && /[A-Z]/.test(up)) return true;
+      return false;
+    }
+
     /**
      * REGRA 2: SUPORTE A LETRAS DUPLAS ("DOUBLE P", "DOUBLE L", etc.) E DELIMITADORES
      * Converte um array de tokens em uma string de letras. Trata "DOUBLE <LETTER>" como duas letras.
@@ -1428,7 +1439,7 @@
           continue;
         }
 
-        if (current === "DOUBLE" && next) {
+        if ((current === "DOUBLE" || current === "TWO") && next) {
           if (next === "YOU" || next === "U") {
             letterArray.push("W");
             i += 2;
@@ -1465,13 +1476,7 @@
         const mapped = ENGLISH_LETTER_MAP[current];
         if (mapped) {
           letterArray.push(mapped);
-        } else if (current.length > 1) {
-          for (const char of current) {
-            if (ENGLISH_LETTER_MAP[char]) {
-              letterArray.push(ENGLISH_LETTER_MAP[char]);
-            }
-          }
-        } else if (current.length === 1) {
+        } else if (current.length === 1 && /[A-Z]/.test(current)) {
           letterArray.push(current);
         }
 
@@ -1576,7 +1581,6 @@
       const targetLetters = target.replace(/[^A-Z]/g, '');
       const targetWords = target.replace(/[^A-Z\s]/g, '').split(/\s+/).filter(Boolean);
       const targetPhraseClean = targetWords.join(' ');
-      const n = targetWords.length || 1;
 
       const formattedWord = target.charAt(0).toUpperCase() + target.slice(1).toLowerCase();
       const hyphenatedSpelling = target.split(/\s+/).map(w => w.split('').join(' - ')).join('   ');
@@ -1585,116 +1589,108 @@
       for (let i = 0; i < eventResults[0].length; i++) {
         const raw = eventResults[0][i].transcript;
         const cleanRaw = raw.toUpperCase().replace(/[^A-Z\s]/g, ' ').trim();
-        const tokens = cleanRaw.split(/\s+/).filter(Boolean);
+        const rawTokens = cleanRaw.split(/\s+/).filter(Boolean);
+        if (!rawTokens.length) continue;
 
-        // Extrai soletrado central (miolo) e processa letras duplas / espaços / apóstrofos
-        let initialPhrase = "";
-        let trailingPhrase = "";
-        let middleTokens = tokens;
+        // Busca a melhor janela de soletração contínua
+        let bestMatch = null;
 
-        if (tokens.length >= n * 2 + 1) {
-          initialPhrase = tokens.slice(0, n).join(' ');
-          trailingPhrase = tokens.slice(tokens.length - n).join(' ');
-          middleTokens = tokens.slice(n, tokens.length - n);
-        } else if (tokens.length >= 3) {
-          initialPhrase = tokens[0];
-          trailingPhrase = tokens[tokens.length - 1];
-          middleTokens = tokens.slice(1, tokens.length - 1);
+        for (let startIdx = 0; startIdx < rawTokens.length; startIdx++) {
+          if (!isSpellingToken(rawTokens[startIdx])) continue;
+
+          for (let endIdx = startIdx + 1; endIdx <= rawTokens.length; endIdx++) {
+            if (!isSpellingToken(rawTokens[endIdx - 1])) continue;
+
+            const windowTokens = rawTokens.slice(startIdx, endIdx);
+            const windowLetters = parseTokensToLetters(windowTokens);
+
+            if (windowLetters === targetLetters || isEquivalentSpelling(windowLetters, targetLetters)) {
+              bestMatch = {
+                startIdx,
+                endIdx,
+                windowLetters,
+                prefixTokens: rawTokens.slice(0, startIdx),
+                suffixTokens: rawTokens.slice(endIdx),
+                exact: true
+              };
+              break;
+            }
+          }
+          if (bestMatch && bestMatch.exact) break;
         }
 
-        const middleLetters = parseTokensToLetters(middleTokens);
+        // Fallback de janela se tiver ao menos 3 tokens
+        if (!bestMatch && rawTokens.length >= 3) {
+          const middleTokens = rawTokens.slice(1, rawTokens.length - 1);
+          const middleLetters = parseTokensToLetters(middleTokens);
+          const lev = acousticLevenshteinDistance(middleLetters, targetLetters);
 
-        const isInitialValid = initialPhrase === targetPhraseClean ||
-                               initialPhrase.replace(/\s/g, '') === targetLetters ||
-                               isAcousticallyEquivalent(initialPhrase, targetPhraseClean);
-        const isTrailingValid = trailingPhrase === targetPhraseClean ||
-                                trailingPhrase.replace(/\s/g, '') === targetLetters ||
-                                isAcousticallyEquivalent(trailingPhrase, targetPhraseClean);
-        const hasFullSequence = (tokens.length >= n * 2 + 1 || tokens.length >= 3) && isInitialValid && isTrailingValid;
-
-        const isExactMatch = middleLetters === targetLetters || isEquivalentSpelling(middleLetters, targetLetters);
-        const lev = acousticLevenshteinDistance(middleLetters, targetLetters);
-
-        if (isExactMatch && hasFullSequence) {
-          return {
-            type: 'EXACT',
-            target: target,
-            heard: targetLetters,
-            raw: raw,
-            displayText: cleanDisplayText,
-            adjustments: []
-          };
-        } else if (lev.distance <= 0.5 && hasFullSequence) {
-          return {
-            type: 'AMBIGUOUS',
-            target: target,
-            heard: middleLetters,
-            raw: raw,
-            displayText: cleanDisplayText,
+          bestMatch = {
+            startIdx: 1,
+            endIdx: rawTokens.length - 1,
+            windowLetters: middleLetters,
+            prefixTokens: [rawTokens[0]],
+            suffixTokens: [rawTokens[rawTokens.length - 1]],
+            exact: lev.distance === 0,
+            confusable: lev.distance <= 0.5,
             adjustments: lev.confusableAdjustments
           };
-        } else if ((isExactMatch || lev.distance <= 0.5) && (tokens.length >= 3 || tokens.length >= n * 2 + 1)) {
-          // O aluno soletrou todas as letras corretamente no miolo, mas o Google STT transcreveu a palavra falada
-          // como uma expressao comum em ingles (ex: "have here" ao inves de "heavier"). Classifica como AMBIGUOUS (Acerto +10pts).
-          return {
-            type: 'AMBIGUOUS',
-            target: target,
-            heard: middleLetters,
-            raw: raw,
-            displayText: cleanDisplayText,
-            adjustments: lev.confusableAdjustments
-          };
-        } else if ((isExactMatch || lev.distance <= 0.5) && !hasFullSequence) {
-          return {
-            type: 'INVALID_SEQUENCE',
-            target: target,
-            heard: middleLetters,
-            raw: raw,
-            displayText: cleanDisplayText,
-            adjustments: lev.confusableAdjustments
-          };
+        }
+
+        if (bestMatch) {
+          const hasOpening = bestMatch.prefixTokens.length > 0;
+          const hasClosing = bestMatch.suffixTokens.length > 0;
+          const heardFormatted = bestMatch.windowLetters || targetLetters;
+
+          // Se faltou falar no início ou no fim -> INVALID_SEQUENCE obrigatório
+          if (!hasOpening || !hasClosing) {
+            return {
+              type: 'INVALID_SEQUENCE',
+              target: target,
+              heard: heardFormatted,
+              raw: raw,
+              displayText: cleanDisplayText,
+              explanation: !hasOpening
+                ? `Remember to say '${targetWord}' before spelling!`
+                : `Remember to say '${targetWord}' again after spelling!`,
+              adjustments: []
+            };
+          }
+
+          // Ambos os limites presentes
+          if (bestMatch.exact) {
+            const prefixText = bestMatch.prefixTokens.join(' ');
+            const suffixText = bestMatch.suffixTokens.join(' ');
+            const isCleanPrefix = prefixText === targetPhraseClean || isAcousticallyEquivalent(prefixText, targetPhraseClean);
+            const isCleanSuffix = suffixText === targetPhraseClean || isAcousticallyEquivalent(suffixText, targetPhraseClean);
+
+            return {
+              type: (isCleanPrefix && isCleanSuffix) ? 'EXACT' : 'AMBIGUOUS',
+              target: target,
+              heard: heardFormatted,
+              raw: raw,
+              displayText: cleanDisplayText,
+              adjustments: bestMatch.adjustments || []
+            };
+          } else if (bestMatch.confusable) {
+            return {
+              type: 'AMBIGUOUS',
+              target: target,
+              heard: heardFormatted,
+              raw: raw,
+              displayText: cleanDisplayText,
+              adjustments: bestMatch.adjustments || []
+            };
+          }
         }
       }
 
-      // Fallback de tolerância no áudio capturado
+      // Fallback: Tentativa não reconhecida ou sequência inválida
       const primaryRaw = eventResults[0][0].transcript;
-      const primaryLetters = parseSpokenTranscriptToLetters(primaryRaw);
-      const isExactMatch = primaryLetters === targetLetters || isEquivalentSpelling(primaryLetters, targetLetters);
-      const lev = acousticLevenshteinDistance(primaryLetters, targetLetters);
-
-      if (isExactMatch) {
-        return {
-          type: 'EXACT',
-          target: target,
-          heard: targetLetters,
-          raw: primaryRaw,
-          displayText: cleanDisplayText,
-          adjustments: []
-        };
-      } else if (primaryLetters.includes(targetLetters)) {
-        return {
-          type: 'AMBIGUOUS',
-          target: target,
-          heard: targetLetters,
-          raw: primaryRaw,
-          displayText: cleanDisplayText,
-          adjustments: []
-        };
-      } else if (lev.distance <= 0.5) {
-        return {
-          type: 'AMBIGUOUS',
-          target: target,
-          heard: primaryLetters,
-          raw: primaryRaw,
-          displayText: cleanDisplayText,
-          adjustments: lev.confusableAdjustments
-        };
-      }
-
       return {
         type: 'NONE',
         target: target,
-        heard: primaryLetters || primaryRaw,
+        heard: primaryRaw,
         raw: primaryRaw,
         displayText: primaryRaw,
         adjustments: []
