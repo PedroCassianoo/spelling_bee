@@ -1633,6 +1633,17 @@
             displayText: cleanDisplayText,
             adjustments: lev.confusableAdjustments
           };
+        } else if ((isExactMatch || lev.distance <= 0.5) && (tokens.length >= 3 || tokens.length >= n * 2 + 1)) {
+          // O aluno soletrou todas as letras corretamente no miolo, mas o Google STT transcreveu a palavra falada
+          // como uma expressao comum em ingles (ex: "have here" ao inves de "heavier"). Classifica como AMBIGUOUS (Acerto +10pts).
+          return {
+            type: 'AMBIGUOUS',
+            target: target,
+            heard: middleLetters,
+            raw: raw,
+            displayText: cleanDisplayText,
+            adjustments: lev.confusableAdjustments
+          };
         } else if ((isExactMatch || lev.distance <= 0.5) && !hasFullSequence) {
           return {
             type: 'INVALID_SEQUENCE',
@@ -1660,6 +1671,15 @@
           displayText: cleanDisplayText,
           adjustments: []
         };
+      } else if (primaryLetters.includes(targetLetters)) {
+        return {
+          type: 'AMBIGUOUS',
+          target: target,
+          heard: targetLetters,
+          raw: primaryRaw,
+          displayText: cleanDisplayText,
+          adjustments: []
+        };
       } else if (lev.distance <= 0.5) {
         return {
           type: 'AMBIGUOUS',
@@ -1679,6 +1699,66 @@
         displayText: primaryRaw,
         adjustments: []
       };
+    }
+
+    /**
+     * ADAPTADOR GEMMA (SMART VALIDATION) COM FALLBACK SILENCIOSO
+     */
+    async function resolveSpellingEvaluation(eventResults, targetWord, level = 'J1') {
+      const isSmartValidationEnabled = localStorage.getItem('spelling_smart_validation') !== 'off';
+      if (!isSmartValidationEnabled) {
+        return evaluateSpellingBeeSequence(eventResults, targetWord);
+      }
+
+      const rawTranscript = (eventResults?.[0]?.[0]?.transcript || '').trim();
+      if (!rawTranscript) {
+        return evaluateSpellingBeeSequence(eventResults, targetWord);
+      }
+
+      const defaultHost = (window.location.hostname && window.location.hostname !== '') ? window.location.hostname : 'localhost';
+      const validatorUrl = localStorage.getItem('spelling_validator_url') || `http://${defaultHost}:8787/api/v1/validate-spelling`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      try {
+        console.log(`[SPELLING ADAPTER] 🎙️ Transcrição STT capturada: "${rawTranscript}" | Palavra Alvo: "${targetWord}"`);
+        const response = await fetch(validatorUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetWord: targetWord,
+            transcriptRaw: rawTranscript,
+            level: level || 'J1'
+          }),
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`validator_http_${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log(`[SPELLING ADAPTER] 🧠 Resposta recebida do Gemma:`, data);
+        const target = targetWord.toUpperCase().trim();
+        const formattedWord = target.charAt(0).toUpperCase() + target.slice(1).toLowerCase();
+        const hyphenatedSpelling = target.split(/\s+/).map(w => w.split('').join(' - ')).join('   ');
+        const cleanDisplayText = `${formattedWord} (${hyphenatedSpelling}) ${formattedWord}`;
+
+        return {
+          type: data.matchType || 'NONE',
+          target: target,
+          heard: data.heard || rawTranscript,
+          raw: rawTranscript,
+          displayText: cleanDisplayText,
+          explanation: data.explanation || null,
+          adjustments: []
+        };
+      } catch (err) {
+        console.warn("[SpellingValidationAdapter] Fallback local ativado:", err.name === 'AbortError' ? 'timeout (>6s)' : err.message);
+        return evaluateSpellingBeeSequence(eventResults, targetWord);
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
 
     /**
@@ -1716,9 +1796,21 @@
         `;
       };
 
-      state.recognition.onresult = (event) => {
+      state.recognition.onresult = async (event) => {
         const transcriptEl = document.getElementById('voiceTranscript');
-        const evaluation = evaluateSpellingBeeSequence(event.results, state.currentWord.word);
+        
+        // Estado intermediário: Checando soletração via Gemma/Heurística
+        if (transcriptEl) {
+          transcriptEl.className = "min-h-[50px] bg-bee-500/10 p-3.5 rounded-xl border border-bee-500/30 text-xs font-sans text-bee-300 flex flex-col items-center justify-center space-y-1 animate-pulse";
+          transcriptEl.innerHTML = `
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping"></span>
+              <span class="font-bold text-amber-300"><svg class="w-3.5 h-3.5 text-amber-400 fill-current inline mr-1" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z"/></svg>Checking your spelling...</span>
+            </div>
+          `;
+        }
+
+        const evaluation = await resolveSpellingEvaluation(event.results, state.currentWord.word, state.level);
 
         if (evaluation.type === 'EXACT') {
           playSoundFx('success');
@@ -1734,6 +1826,7 @@
               <span>PERFECT!</span>
             </div>
             <p class="text-[11px] text-emerald-200">You said: "${evaluation.displayText || evaluation.raw}" (+10 pts)</p>
+            ${evaluation.explanation ? `<p class="text-[10px] text-emerald-300/80 italic mt-0.5">${evaluation.explanation}</p>` : ''}
           `;
 
           setTimeout(() => {
@@ -1757,6 +1850,7 @@
             <p class="text-[11px] text-slate-200 mt-0.5">
               You said "<strong>${evaluation.raw}</strong>"! Close enough to "<strong>${evaluation.target}</strong>".
             </p>
+            ${evaluation.explanation ? `<p class="text-[10px] text-amber-300/80 italic mt-0.5">${evaluation.explanation}</p>` : ''}
           `;
 
           setTimeout(() => {
@@ -1770,6 +1864,7 @@
             <div class="font-bold text-amber-300 flex items-center justify-center"><svg class="w-4 h-4 text-amber-400 stroke-current fill-none inline mr-1" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>ALMOST! Follow the 3-step rule:</div>
             <p class="text-[11px] text-amber-200">1. Say the word &bull; 2. Spell it letter by letter &bull; 3. Say the word again</p>
             <p class="text-[10px] text-amber-400/80">We heard: "${evaluation.raw || '...'}"</p>
+            ${evaluation.explanation ? `<p class="text-[10px] text-amber-300/80 italic mt-0.5">${evaluation.explanation}</p>` : ''}
           `;
           setTimeout(() => transcriptEl.classList.remove('animate-shake'), 600);
 
@@ -1782,7 +1877,7 @@
           transcriptEl.innerHTML = `
             <div class="font-bold text-rose-300 flex items-center justify-center"><svg class="w-4 h-4 text-rose-400 stroke-current fill-none inline mr-1" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>Not quite, try again!</div>
             <p class="text-[11px] text-rose-200">We heard: <strong>"${evaluation.raw || '...'}"</strong></p>
-            <p class="text-[10px] text-rose-400/80">Listen to the pronunciation and try again.</p>
+            ${evaluation.explanation ? `<p class="text-[10px] text-rose-300/80 italic mt-0.5">${evaluation.explanation}</p>` : `<p class="text-[10px] text-rose-400/80">Listen to the pronunciation and try again.</p>`}
           `;
 
           setTimeout(() => {

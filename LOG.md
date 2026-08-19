@@ -7,6 +7,22 @@ Diretório: `C:\Projetos Gemini\Red News`
 
 ## 🛠️ Últimas Correções de Erros (Bug Fixes)
 
+### [2026-08-18] - Otimização de Performance Gemma (CPU sub-2s), Tolerância Acústica STT e Live Logs
+
+- **Identificação do Problema:**
+  1. **Gargalo de Latência no Modelo 12B:** O modelo de 12B no Ollama executando em CPU (AMD Ryzen 7 5700G) levava ~33s para responder (largura de banda DDR4), estourando o timeout de 4s e forçando o fallback local em todas as tentativas.
+  2. **Erro Acústico de STT no Navegador (*have here* vs *heavier*):** Ao falar *"heavier"* ou soletrações, o Google STT no Chrome transcrevia a locução como expressões comuns de conversação em inglês (*"have here"*). O avaliador local reprovava por não reconhecer a palavra no início/fim, mesmo com as letras do miolo 100% corretas.
+  3. **Ausência de Logs no Terminal:** O microsserviço [server.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/server.js) não exibia os dados recebidos e enviados em requisições de sucesso, dificultando a auditoria.
+
+- **Ações e Correções Aplicadas:**
+  - ✅ **Otimização Extrema de Parâmetros CPU:** Configurado `num_thread: 14`, `num_ctx: 256`, `num_predict: 45`, `temperature: 0` e prompt ultra-compacto no [promptBuilder.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/promptBuilder.js), reduzindo o tempo de leitura do prompt de 11s para <0.2s e viabilizando inferência ágil.
+  - ✅ **Suporte ao Modelo Leve `gemma2:2b`:** Adicionado suporte nativo e chaveamento de modelo para execução em CPU com tempo de resposta de 1 a 2 segundos.
+  - ✅ **Tolerância a Ruído de STT no Avaliador Local e na IA:** Instruções explícitas no prompt da IA e lógica aprimorada no [index.html](file:///c:/Projetos%20Gemini/Red%20News/index.html) para identificar quando as letras soletradas no miolo (`H-E-A-V-I-E-R`) estão 100% corretas, aceitando ruídos do navegador nas bordas como `AMBIGUOUS` (+10 pts) em vez de dar tela de erro.
+  - ✅ **Live Logging em Tempo Real no Servidor:** Inclusão de logs coloridos com timestamp, tempo em milissegundos, payload do STT, veredito e explicação amigável no [server.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/server.js).
+  - ✅ **Aumento de Timeout Seguro:** Ajustado timeout para 6.000ms no [config.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/config.js) e no [index.html](file:///c:/Projetos%20Gemini/Red%20News/index.html).
+
+---
+
 ### [2026-08-17] - POP: Revisão Fonética, Áudio e Validação de "There aren't" (J2)
 
 - **Identificação do Problema:**
