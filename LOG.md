@@ -5,7 +5,39 @@ Diretório: `C:\Projetos Gemini\Red News`
 
 ---
 
-## 🛠️ Últimas Correções de Erros (Bug Fixes)
+## 🛠️ Últimas Correções de Erros e Implementações
+
+### [2026-08-19] - Plano 1 & Plano 2: Logger de Candidatos e Painel de Curadoria Humana com Sincronização Dinâmica
+
+- **Objetivo:**
+  - Criar um loop fechado completo para aprendizado contínuo de variações do Web Speech API:
+    1. **Plano 1 (Captura Silenciosa):** Detecção automática de soletrações corretas com menções de palavras pré/pós desconhecidas e log via RPC Supabase com Security Definer (`log_variant_candidate`).
+    2. **Plano 2 (Curadoria Humana & Merge Dinâmico):** Painel administrativo isolado ([admin-variantes.html](file:///c:/Projetos%20Gemini/Red%20News/admin-variantes.html)) para aprovação/rejeição humana com Supabase Auth e função `loadApprovedVariants()` que carrega as variantes aprovadas da tabela `word_phonetic_variants` no boot do app do aluno sem modificar o seed local estático.
+
+- **Ações e Entregáveis:**
+  - ✅ **Script SQL Plano 1 ([supabase_plano_1.sql](file:///c:/Projetos%20Gemini/Red%20News/supabase_plano_1.sql)):** Tabela `word_variant_candidates`, índice por status, RLS restritivo e função RPC `log_variant_candidate` com agregação por `occurrence_count`.
+  - ✅ **Script SQL Plano 2 ([supabase_plano_2.sql](file:///c:/Projetos%20Gemini/Red%20News/supabase_plano_2.sql)):** Tabela `word_phonetic_variants`, políticas RLS para leitura pública e leitura de curadores autenticados, RPCs `approve_variant_candidate` e `reject_variant_candidate`.
+  - ✅ **Aprimoramento do Validador ([spellingBeeValidator.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/spellingBeeValidator.js) e [index.html](file:///c:/Projetos%20Gemini/Red%20News/index.html)):** Adicionado suporte a `details` no retorno de `validateSpelling`, funções assíncronas `validateSpellingAndLog()` e `loadApprovedVariants()` integradas de forma não-bloqueante.
+  - ✅ **Painel de Curadoria Pro ([admin-variantes.html](file:///c:/Projetos%20Gemini/Red%20News/admin-variantes.html)):** Interface dedicada com autenticação Supabase Auth, cards de KPI em tempo real, abas de triagem (Pendentes, Aprovadas, Rejeitadas, Dicionário Ativo), ordenação por frequência de erro, inserção manual e simulador sandbox de transcrições.
+  - ✅ **Suíte de Testes Automatizados ([test_logger_candidate.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/test_logger_candidate.js) e [test_plan_2.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/test_plan_2.js)):** 100% de cobertura com todos os testes passando com sucesso.
+
+---
+
+### [2026-08-19] - Conformidade Estrita com Regras Oficiais do Spelling Bee (Regra dos 3 Passos: Say -> Spell -> Say)
+
+- **Identificação do Problema:**
+  1. **Aprovação Indevida de Soletrações sem Repetição Final:** Alunos que apenas falavam a palavra e soletravam as letras (ex: `"cat c a t"` ou `"have here h e a v i e r"`) sem repetir a palavra no final estavam sendo aprovados com `EXACT` ou `AMBIGUOUS` (+10 pts), violando a regra central dos 3 passos do Spelling Bee.
+  2. **Ausência de Trava Antialucinação no Backend Gemma:** O prompt anterior permitia que o modelo LLM relevasse a ausência da palavra de fechamento caso as letras centrais estivessem corretas.
+  3. **Fallback Local no Frontend:** A função `evaluateSpellingBeeSequence` no `index.html` possuía ramificação que aceitava sequências com tokens >= 3 sem validar os limites inicial e final de forma estrita.
+
+- **Ações e Correções Aplicadas:**
+  - ✅ **Módulo de Validação Estrutural e Fonética ([sequenceValidator.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/sequenceValidator.js)):** Criação de validador determinístico para as 4 regras do POP (3 Passos, Letras Duplas `DOUBLE`/`TWO`, Delimitadores `SPACE`/`APOSTROPHE` e Matriz de Confusão Fonética).
+  - ✅ **Prompt Estruturado com Exemplos Negativos ([promptBuilder.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/promptBuilder.js)):** Instruções imperativas para o Gemma exigindo que tentativas sem palavra no início ou sem palavra no fim retornem obrigatoriamente `INVALID_SEQUENCE` com `correct: false`.
+  - ✅ **Travas de Segurança Antialucinação no Cliente Ollama ([ollamaClient.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/ollamaClient.js)):** Reconciliação bidirecional que impede que o LLM marque como correto qualquer tentativa que viole a regra dos 3 passos, e impede falsos negativos em ruídos acústicos de STT com os 3 passos presentes.
+  - ✅ **Alinhamento do Motor Local no Frontend ([index.html](file:///c:/Projetos%20Gemini/Red%20News/index.html)):** Atualização de `parseTokensToLetters` e `evaluateSpellingBeeSequence` para exigir abertura, soletração e fechamento com tolerância acústica padronizada.
+  - ✅ **Suíte de Testes Automatizados 100% Coberta ([test.js](file:///c:/Projetos%20Gemini/Red%20News/Gemma/test.js)):** 8 suítes de testes unitários cobrindo todos os cenários das regras do POP com 100% de aprovação.
+
+---
 
 ### [2026-08-18] - Otimização de Performance Gemma (CPU sub-2s), Tolerância Acústica STT e Live Logs
 
@@ -66,9 +98,13 @@ Diretório: `C:\Projetos Gemini\Red News`
   - Sincronização de fontes locais Ambit (OpenType / TrueType) e scripts de automação PowerShell (`push_to_github.ps1`).
   - Integração com Vercel (`vercel.json`) e base de dados Supabase (`insert_words.sql`, `insert_words_j1.sql`, `insert_words_j2.sql`, `insert_words_t1.sql`, `insert_words_t2.sql`).
 
-### [2026-08-17] - Engine Fonética e Regras de Spelling Bee
-- **Ajustes:**
-  - Implementação da validação da regra de 3 passos (*Word - Spelling - Word*).
-  - Implementação de algoritmo de Distância de Levenshtein com Matriz de Confusão Fonética e tolerância acústica (*Vocabulary Biasing*).
-  - Suporte a reconhecimento de letras duplas (*ex: "DOUBLE P"*).
-  - Fallback de áudio: reprodução via URL remota de áudio com fallback automático para Text-to-Speech (`window.speechSynthesis`) nativo.
+### [2026-08-19] - Módulo de Validação Fonética Pura no Spelling Bee (SpellingBeeValidator)
+
+- **Objetivo:**
+  - Integrar a arquitetura em 4 camadas de validação fonética pura (`SpellingBeeValidator`) no aplicativo single-file `index.html`.
+- **Ações Realizadas:**
+  - ✅ **Backup de Segurança:** Criado `index.backup.html`.
+  - ✅ **Módulo Isolado:** Inserido `SpellingBeeValidator` em bloco `<script>` próprio antes do script principal, contendo sanitização, dicionário fonético de 26 letras, resolução de multiplicadores (`double`/`triple`), delimitador `space`, classificação de menção (`classifyWordMention`) e orquestrador (`validateSpelling`).
+  - ✅ **Integração sem Quebras:** Atualizada a função `evaluateSpellingBeeSequence` para chamar `SpellingBeeValidator.validateSpelling(targetWord, primaryRaw)` preservando todas as assinaturas e sem remover variáveis/funções legadas.
+  - ✅ **Testes de Regressão:** 14/14 casos de teste automatizados validados com 100% de sucesso.
+

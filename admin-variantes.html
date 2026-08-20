@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curadoria de Variantes Fonéticas | Spelling Bee Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            bee: {
+              400: '#FCD34D',
+              500: '#F59E0B',
+              600: '#D97706',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #090d16 60%, #030712 100%);
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-hover:hover {
+      border-color: rgba(245, 158, 11, 0.3);
+      box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.15);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.5);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="text-slate-100 font-sans antialiased p-4 sm:p-6 lg:p-8 flex flex-col min-h-screen">
+
+  <!-- ========================================== -->
+  <!-- CABEÇALHO DO PAINEL -->
+  <!-- ========================================== -->
+  <header class="max-w-7xl w-full mx-auto mb-8">
+    <div class="glass-card rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl">
+      <div class="flex items-center space-x-3 sm:space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-bee-400 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-display font-black text-2xl">
+          🐝
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">Curadoria Fonética</h1>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30">Admin Pro</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400">Auditoria humana de transcrições e aprovação de novas variantes fonéticas</p>
+        </div>
+      </div>
+
+      <!-- Área de Usuário / Status -->
+      <div id="authStatusArea" class="flex items-center gap-3">
+        <!-- Renderizado dinamicamente pelo JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- TELA DE LOGIN (QUANDO NÃO AUTENTICADO) -->
+  <!-- ========================================== -->
+  <div id="loginScreen" class="max-w-md w-full mx-auto my-auto py-12 hidden">
+    <div class="glass-card rounded-3xl p-8 shadow-2xl border border-white/10">
+      <div class="text-center mb-6">
+        <div class="inline-flex p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mb-3">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-display font-bold text-white">Acesso do Curador</h2>
+        <p class="text-sm text-slate-400 mt-1">Entre com seu e-mail administrativo do Supabase</p>
+      </div>
+
+      <form id="formLogin" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">E-mail</label>
+          <input type="email" id="loginEmail" required placeholder="admin@redballoon.com"
+            class="w-full bg-slate-900/90 border border-slate-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">Senha</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••"
+            class="w-full bg-slate-900/90 border border-slate-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition">
+        </div>
+
+        <div id="loginError" class="hidden p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-medium"></div>
+
+        <button type="submit" id="btnLoginSubmit"
+          class="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 to-bee-500 hover:from-amber-400 hover:to-bee-400 text-slate-950 font-display font-bold text-sm rounded-xl shadow-lg shadow-amber-500/25 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
+          <span>Acessar Painel</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+          </svg>
+        </button>
+      </form>
+
+      <div class="mt-6 pt-5 border-t border-slate-800 text-center">
+        <p class="text-xs text-slate-400">
+          Precisa de credenciais? Crie um usuário em <strong>Supabase Dashboard &gt; Authentication</strong>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PAINEL PRINCIPAL (QUANDO AUTENTICADO) -->
+  <!-- ========================================== -->
+  <main id="mainDashboard" class="max-w-7xl w-full mx-auto space-y-6 flex-1 hidden">
+
+    <!-- KPI CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass-card rounded-2xl p-5 border-l-4 border-amber-500">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Candidatos Pendentes</p>
+            <h3 id="statPendingCount" class="text-3xl font-display font-extrabold text-amber-400 mt-1">0</h3>
+          </div>
+          <div class="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Aguardando revisão humana</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 border-l-4 border-emerald-500">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Variantes Ativas</p>
+            <h3 id="statApprovedCount" class="text-3xl font-display font-extrabold text-emerald-400 mt-1">0</h3>
+          </div>
+          <div class="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Sincronizadas no app do aluno</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 border-l-4 border-rose-500">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Rejeitadas</p>
+            <h3 id="statRejectedCount" class="text-3xl font-display font-extrabold text-rose-400 mt-1">0</h3>
+          </div>
+          <div class="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Menções incorretas descartadas</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 border-l-4 border-violet-500">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Ocorrências</p>
+            <h3 id="statTotalOccurrences" class="text-3xl font-display font-extrabold text-violet-400 mt-1">0</h3>
+          </div>
+          <div class="p-2.5 rounded-xl bg-violet-500/10 text-violet-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Volume acumulado de STT</p>
+      </div>
+    </div>
+
+    <!-- CONTROLES & FILTROS -->
+    <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Abas de Visualização -->
+      <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
+        <button id="tabPending" onclick="switchTab('pending')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-amber-500 text-slate-950 shadow">
+          Pendentes (<span id="tabBadgePending">0</span>)
+        </button>
+        <button id="tabApproved" onclick="switchTab('approved')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-all">
+          Aprovadas (<span id="tabBadgeApproved">0</span>)
+        </button>
+        <button id="tabLiveVariants" onclick="switchTab('live')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-all">
+          Dicionário Ativo
+        </button>
+        <button id="tabRejected" onclick="switchTab('rejected')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-all">
+          Rejeitadas
+        </button>
+      </div>
+
+      <!-- Busca e Ações -->
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+        <div class="relative flex-1 sm:w-64">
+          <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Filtrar palavra ou menção..."
+            class="w-full bg-slate-900/80 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500">
+          <svg class="w-4 h-4 text-slate-500 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+
+        <button onclick="loadAllData()" title="Recarregar dados"
+          class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <button onclick="openManualVariantModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 font-semibold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5">
+          <span>+ Nova Variante</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- LISTAGEM PRINCIPAL -->
+    <div class="glass-card rounded-2xl p-4 sm:p-6 overflow-hidden">
+      <div id="loadingIndicator" class="py-12 text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-amber-500 border-t-transparent"></div>
+        <p class="text-xs text-slate-400 mt-2">Carregando candidatos e variantes...</p>
+      </div>
+
+      <div id="emptyState" class="py-16 text-center hidden">
+        <div class="text-4xl mb-2">🎉</div>
+        <h4 class="text-lg font-bold text-white">Nenhum registro encontrado</h4>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1 max-w-md mx-auto">
+          Não há itens nesta categoria. Conforme os alunos soletrando no modo Voice gerarem transcrições ambíguas, elas aparecerão aqui em tempo real.
+        </p>
+      </div>
+
+      <!-- Tabela de Candidatos -->
+      <div id="candidatesTableContainer" class="hidden overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <th class="py-3 px-4">Palavra Alvo</th>
+              <th class="py-3 px-4">Menção Ouvida (STT)</th>
+              <th class="py-3 px-4">Posição</th>
+              <th class="py-3 px-4">Ocorrências</th>
+              <th class="py-3 px-4">Contexto da Fala (Transcrição Bruta)</th>
+              <th class="py-3 px-4 text-right">Ações de Curadoria</th>
+            </tr>
+          </thead>
+          <tbody id="candidatesTableBody" class="divide-y divide-slate-800/60 text-sm">
+            <!-- Linhas inseridas via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tabela do Dicionário Ativo de Variantes -->
+      <div id="liveVariantsContainer" class="hidden overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <th class="py-3 px-4">Palavra Alvo</th>
+              <th class="py-3 px-4">Variante Fonética Aceita</th>
+              <th class="py-3 px-4">Origem</th>
+              <th class="py-3 px-4">Criada em</th>
+            </tr>
+          </thead>
+          <tbody id="liveVariantsTableBody" class="divide-y divide-slate-800/60 text-sm">
+            <!-- Linhas inseridas via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SIMULADOR / TESTE EM TEMPO REAL -->
+    <div class="glass-card rounded-2xl p-5 border border-slate-800">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-amber-400 font-bold text-sm font-display">🧪 Sandbox de Validação em Tempo Real</span>
+          <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">Teste de Regras</span>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <input type="text" id="simTarget" placeholder="Palavra Alvo (ex: heavier)"
+          class="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500">
+        <input type="text" id="simTranscript" placeholder="Transcrição STT (ex: have here h e a v i e r have here)"
+          class="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500">
+        <button onclick="runSimulation()"
+          class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm rounded-xl border border-slate-700 transition">
+          Validar Resultado
+        </button>
+      </div>
+      <div id="simResultArea" class="mt-3 hidden p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs"></div>
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: NOVA VARIANTE MANUAL -->
+  <!-- ========================================== -->
+  <div id="modalManualVariant" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-card rounded-3xl p-6 max-w-md w-full border border-white/10 shadow-2xl animate-fade-in">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-display font-bold text-white">Adicionar Variante Manual</h3>
+        <button onclick="closeManualVariantModal()" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="formManualVariant" onsubmit="submitManualVariant(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Palavra Alvo (Target Word)</label>
+          <input type="text" id="manualWord" required placeholder="ex: heavier"
+            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Variante Aceita (Como STT ouve)</label>
+          <input type="text" id="manualVariant" required placeholder="ex: have here"
+            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="closeManualVariantModal()"
+            class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold transition">Cancelar</button>
+          <button type="submit"
+            class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-display font-bold text-xs shadow-lg shadow-amber-500/20 transition">Salvar Variante</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- LÓGICA JAVASCRIPT DO PAINEL ADMIN -->
+  <!-- ========================================== -->
+  <script>
+    // CREDENCIAIS SUPABASE
+    const SUPABASE_URL = localStorage.getItem('spelling_bee_url') || "https://twhsovqgtbafaeehefya.supabase.co";
+    const SUPABASE_KEY = localStorage.getItem('spelling_bee_key') || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3aHNvdnFndGJhZmFlZWhlZnlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzOTc2MjUsImV4cCI6MjEwMTk3MzYyNX0.NhvYm6jbbHynuboCzDgiTdTSwfrX76rUozfB4xDBX20";
+
+    let supabaseClient = null;
+    let currentUser = null;
+    let allCandidates = [];
+    let allLiveVariants = [];
+    let currentTab = 'pending';
+
+    function initClient() {
+      if (window.supabase) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_KEY.trim());
+      }
+    }
+    initClient();
+
+    // CHECAGEM DE AUTENTICAÇÃO
+    async function checkAuth() {
+      if (!supabaseClient) return;
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session && session.user) {
+        currentUser = session.user;
+        renderAuthStatus(true);
+        showDashboard(true);
+        loadAllData();
+      } else {
+        currentUser = null;
+        renderAuthStatus(false);
+        showDashboard(false);
+      }
+    }
+
+    function renderAuthStatus(isLoggedIn) {
+      const el = document.getElementById('authStatusArea');
+      if (!el) return;
+
+      if (isLoggedIn && currentUser) {
+        el.innerHTML = `
+          <div class="flex items-center gap-3 bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-slate-300 font-medium">${currentUser.email}</span>
+            <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 font-bold ml-2 underline transition">Sair</button>
+          </div>
+          <a href="index.html" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl border border-slate-700 transition flex items-center gap-1">
+            <span>Ir ao App</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        `;
+      } else {
+        el.innerHTML = `
+          <a href="index.html" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl border border-slate-700 transition flex items-center gap-1">
+            <span>← Voltar ao App do Aluno</span>
+          </a>
+        `;
+      }
+    }
+
+    function showDashboard(show) {
+      document.getElementById('loginScreen').classList.toggle('hidden', show);
+      document.getElementById('mainDashboard').classList.toggle('hidden', !show);
+    }
+
+    // LOGIN & LOGOUT
+    document.getElementById('formLogin').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const errBox = document.getElementById('loginError');
+      const btn = document.getElementById('btnLoginSubmit');
+
+      errBox.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="inline-block animate-spin h-4 w-4 border-2 border-slate-950 border-t-transparent rounded-full mr-2"></span>Entrando...`;
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        currentUser = data.user;
+        renderAuthStatus(true);
+        showDashboard(true);
+        loadAllData();
+      } catch (err) {
+        errBox.textContent = err.message || 'Erro ao autenticar. Verifique e-mail e senha.';
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Acessar Painel</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>`;
+      }
+    });
+
+    async function handleLogout() {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
+      currentUser = null;
+      renderAuthStatus(false);
+      showDashboard(false);
+    }
+
+    // CARREGAR DADOS
+    async function loadAllData() {
+      document.getElementById('loadingIndicator').classList.remove('hidden');
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('candidatesTableContainer').classList.add('hidden');
+      document.getElementById('liveVariantsContainer').classList.add('hidden');
+
+      try {
+        // 1. Busca todos os candidatos
+        const { data: candidates, error: errCand } = await supabaseClient
+          .from('word_variant_candidates')
+          .select('*')
+          .order('occurrence_count', { ascending: false });
+
+        if (errCand) throw errCand;
+        allCandidates = candidates || [];
+
+        // 2. Busca todas as variantes ativas
+        const { data: variants, error: errVar } = await supabaseClient
+          .from('word_phonetic_variants')
+          .select('*')
+          .order('word', { ascending: true });
+
+        if (errVar) throw errVar;
+        allLiveVariants = variants || [];
+
+        updateKpiStats();
+        applyFilters();
+      } catch (err) {
+        console.error('Erro ao carregar dados do Supabase:', err);
+        alert('Erro ao carregar dados do Supabase: ' + (err.message || err));
+      } finally {
+        document.getElementById('loadingIndicator').classList.add('hidden');
+      }
+    }
+
+    function updateKpiStats() {
+      const pending = allCandidates.filter(c => c.status === 'pending');
+      const approved = allCandidates.filter(c => c.status === 'approved');
+      const rejected = allCandidates.filter(c => c.status === 'rejected');
+      const totalOccurrences = allCandidates.reduce((acc, c) => acc + (c.occurrence_count || 1), 0);
+
+      document.getElementById('statPendingCount').textContent = pending.length;
+      document.getElementById('statApprovedCount').textContent = allLiveVariants.length;
+      document.getElementById('statRejectedCount').textContent = rejected.length;
+      document.getElementById('statTotalOccurrences').textContent = totalOccurrences;
+
+      document.getElementById('tabBadgePending').textContent = pending.length;
+      document.getElementById('tabBadgeApproved').textContent = approved.length;
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const tabs = ['pending', 'approved', 'live', 'rejected'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(t === 'live' ? 'tabLiveVariants' : `tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (btn) {
+          if (t === tab) {
+            btn.className = "px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-amber-500 text-slate-950 shadow";
+          } else {
+            btn.className = "px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-all";
+          }
+        }
+      });
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const query = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+
+      if (currentTab === 'live') {
+        document.getElementById('candidatesTableContainer').classList.add('hidden');
+        document.getElementById('liveVariantsContainer').classList.remove('hidden');
+
+        const filtered = allLiveVariants.filter(v => 
+          !query || v.word.toLowerCase().includes(query) || v.variant.toLowerCase().includes(query)
+        );
+
+        renderLiveVariantsTable(filtered);
+        document.getElementById('emptyState').classList.toggle('hidden', filtered.length > 0);
+      } else {
+        document.getElementById('liveVariantsContainer').classList.add('hidden');
+        document.getElementById('candidatesTableContainer').classList.remove('hidden');
+
+        const filtered = allCandidates.filter(c => {
+          const matchTab = c.status === currentTab;
+          const matchQuery = !query || 
+            c.target_word.toLowerCase().includes(query) || 
+            c.candidate_mention.toLowerCase().includes(query) ||
+            (c.raw_transcript && c.raw_transcript.toLowerCase().includes(query));
+          return matchTab && matchQuery;
+        });
+
+        renderCandidatesTable(filtered);
+        document.getElementById('emptyState').classList.toggle('hidden', filtered.length > 0);
+      }
+    }
+
+    function renderCandidatesTable(items) {
+      const tbody = document.getElementById('candidatesTableBody');
+      if (!items || items.length === 0) {
+        tbody.innerHTML = '';
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => {
+        const isPending = item.status === 'pending';
+        const positionBadge = item.mention_position === 'pre'
+          ? '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">Pré-Soletração</span>'
+          : '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Pós-Soletração</span>';
+
+        return `
+          <tr id="row-${item.id}" class="hover:bg-slate-800/40 transition">
+            <td class="py-3.5 px-4 font-display font-extrabold text-white">
+              <span class="bg-slate-900 border border-slate-700 px-2.5 py-1 rounded-lg text-amber-400 text-xs">${escapeHtml(item.target_word)}</span>
+            </td>
+            <td class="py-3.5 px-4 font-semibold text-rose-300">
+              "${escapeHtml(item.candidate_mention)}"
+            </td>
+            <td class="py-3.5 px-4">
+              ${positionBadge}
+            </td>
+            <td class="py-3.5 px-4">
+              <span class="inline-flex items-center gap-1 font-bold text-xs ${item.occurrence_count > 1 ? 'text-amber-400' : 'text-slate-400'}">
+                ${item.occurrence_count > 1 ? '🔥 ' : ''}${item.occurrence_count}x
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-xs text-slate-300 max-w-xs truncate" title="${escapeHtml(item.raw_transcript || '')}">
+              <span class="text-slate-400 font-mono italic">"${escapeHtml(item.raw_transcript || '-')}"</span>
+            </td>
+            <td class="py-3.5 px-4 text-right">
+              ${isPending ? `
+                <div class="flex items-center justify-end gap-2">
+                  <button onclick="approveCandidate('${item.id}', this)"
+                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <span>Aprovar</span>
+                  </button>
+                  <button onclick="rejectCandidate('${item.id}', this)"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-300 border border-slate-700 font-bold text-xs rounded-lg transition flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <span>Rejeitar</span>
+                  </button>
+                </div>
+              ` : `
+                <span class="text-xs font-semibold uppercase tracking-wider ${item.status === 'approved' ? 'text-emerald-400' : 'text-rose-400'}">
+                  ${item.status === 'approved' ? '✅ Aprovada' : '❌ Rejeitada'}
+                </span>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderLiveVariantsTable(items) {
+      const tbody = document.getElementById('liveVariantsTableBody');
+      if (!items || items.length === 0) {
+        tbody.innerHTML = '';
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="py-3 px-4 font-display font-bold text-amber-400">${escapeHtml(item.word)}</td>
+          <td class="py-3 px-4 font-semibold text-emerald-300">"${escapeHtml(item.variant)}"</td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold ${item.source === 'seed' ? 'bg-slate-800 text-slate-400' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}">
+              ${item.source === 'seed' ? 'Seed Padrão' : 'Curadoria Manual'}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-400">
+            ${new Date(item.created_at).toLocaleDateString('pt-BR')}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // AÇÕES DE APROVAÇÃO E REJEIÇÃO
+    async function approveCandidate(candidateId, btn) {
+      if (!confirm('Deseja aprovar esta variante fonética? Ela será aceita como resposta certa no modo Voice.')) return;
+      if (btn) btn.disabled = true;
+
+      try {
+        const { error } = await supabaseClient.rpc('approve_variant_candidate', {
+          p_candidate_id: candidateId,
+          p_reviewer: currentUser?.email || 'admin'
+        });
+
+        if (error) throw error;
+
+        // Atualiza estado local
+        const cand = allCandidates.find(c => c.id === candidateId);
+        if (cand) {
+          cand.status = 'approved';
+          allLiveVariants.push({
+            id: 'temp-' + Date.now(),
+            word: cand.target_word,
+            variant: cand.candidate_mention,
+            source: 'curated',
+            created_at: new Date().toISOString()
+          });
+        }
+
+        updateKpiStats();
+        applyFilters();
+      } catch (err) {
+        alert('Erro ao aprovar candidato: ' + (err.message || err));
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function rejectCandidate(candidateId, btn) {
+      if (!confirm('Deseja rejeitar este candidato?')) return;
+      if (btn) btn.disabled = true;
+
+      try {
+        const { error } = await supabaseClient.rpc('reject_variant_candidate', {
+          p_candidate_id: candidateId,
+          p_reviewer: currentUser?.email || 'admin'
+        });
+
+        if (error) throw error;
+
+        const cand = allCandidates.find(c => c.id === candidateId);
+        if (cand) cand.status = 'rejected';
+
+        updateKpiStats();
+        applyFilters();
+      } catch (err) {
+        alert('Erro ao rejeitar candidato: ' + (err.message || err));
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    // MODAL VARIANTE MANUAL
+    function openManualVariantModal() {
+      document.getElementById('modalManualVariant').classList.remove('hidden');
+      document.getElementById('manualWord').focus();
+    }
+    function closeManualVariantModal() {
+      document.getElementById('modalManualVariant').classList.add('hidden');
+      document.getElementById('formManualVariant').reset();
+    }
+
+    async function submitManualVariant(e) {
+      e.preventDefault();
+      const word = document.getElementById('manualWord').value.trim().toLowerCase();
+      const variant = document.getElementById('manualVariant').value.trim().toLowerCase();
+
+      if (!word || !variant) return;
+
+      try {
+        const { error } = await supabaseClient
+          .from('word_phonetic_variants')
+          .insert({ word, variant, source: 'curated' });
+
+        if (error) throw error;
+
+        closeManualVariantModal();
+        loadAllData();
+      } catch (err) {
+        alert('Erro ao inserir variante: ' + (err.message || err));
+      }
+    }
+
+    // SANDBOX SIMULADOR
+    function runSimulation() {
+      const target = document.getElementById('simTarget').value.trim();
+      const transcript = document.getElementById('simTranscript').value.trim();
+      const resultArea = document.getElementById('simResultArea');
+
+      if (!target || !transcript) {
+        alert('Preencha a palavra alvo e a transcrição para testar.');
+        return;
+      }
+
+      // Constrói dicionário simulado com as variantes ativas do banco
+      const mockDict = {};
+      allLiveVariants.forEach(v => {
+        const k = v.word.toLowerCase();
+        if (!mockDict[k]) mockDict[k] = [];
+        mockDict[k].push(v.variant.toLowerCase());
+      });
+
+      // Validação rápida em memória
+      const clean = transcript.toLowerCase().replace(/[.,;:!?'"()]/g, ' ').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+      const tokens = clean.split(' ').filter(Boolean);
+      const expectedLetters = target.toLowerCase().split('').map(c => c === ' ' ? 'space' : c);
+
+      resultArea.classList.remove('hidden');
+      resultArea.innerHTML = `
+        <div class="space-y-1">
+          <p class="font-bold text-white">Resultado da Simulação:</p>
+          <p class="text-slate-300">Tokens Sanitizados: <code class="text-amber-400 font-mono">${JSON.stringify(tokens)}</code></p>
+          <p class="text-slate-300">Variantes Ativas para "${target}": <code class="text-emerald-400 font-mono">${JSON.stringify(mockDict[target.toLowerCase()] || [])}</code></p>
+        </div>
+      `;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+
+    // Inicialização ao carregar a página
+    window.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+    });
+  </script>
+</body>
+</html>

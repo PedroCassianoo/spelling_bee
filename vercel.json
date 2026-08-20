@@ -4,6 +4,13 @@
   "cleanUrls": true,
   "routes": [
     {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/admin-variantes",
+      "dest": "/admin-variantes.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
