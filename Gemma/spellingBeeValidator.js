@@ -309,8 +309,8 @@ async function loadApprovedVariants(supabaseClient) {
 
     if (Array.isArray(data)) {
       for (const row of data) {
-        const key = (row.word || '').toLowerCase().trim();
-        const val = (row.variant || '').toLowerCase().trim();
+        const key = sanitize(row.word || '');
+        const val = sanitize(row.variant || '');
         if (!key || !val) continue;
         if (!phoneticVariants[key]) phoneticVariants[key] = [];
         if (!phoneticVariants[key].includes(val)) {

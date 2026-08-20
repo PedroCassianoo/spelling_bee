@@ -130,8 +130,13 @@ Adicionar política de leitura para o painel enxergar os candidatos:
 alter table word_variant_candidates enable row level security;
 -- (se já estava habilitado desde o Plano 1, esta linha não faz nada de novo)
 
-create policy "curadores leem candidatos pendentes"
+-- Concede privilégio de SELECT no nível de tabela para o papel authenticated
+grant select on word_variant_candidates to authenticated;
+
+drop policy if exists "curadores leem candidatos" on word_variant_candidates;
+create policy "curadores leem candidatos"
   on word_variant_candidates for select
+  to authenticated
   using (auth.role() = 'authenticated');
 ```
 

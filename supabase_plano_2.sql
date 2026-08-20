@@ -22,13 +22,38 @@ create policy "leitura publica de variantes aprovadas"
   on word_phonetic_variants for select
   using (true);
 
--- Bloqueia inserção, atualização e exclusão direta (escrita somente via RPCs)
-revoke insert, update, delete on word_phonetic_variants from anon, authenticated;
+-- Bloqueia inserção direta do app do aluno (anon)
+revoke insert, update, delete on word_phonetic_variants from anon;
+
+-- Permite leitura para anon e CRUD completo para curadores autenticados
+grant select on word_phonetic_variants to anon;
+grant select, insert, update, delete on word_phonetic_variants to authenticated;
+grant select on word_variant_candidates to authenticated;
+
+-- Políticas RLS para word_phonetic_variants
+drop policy if exists "curadores inserem variantes" on word_phonetic_variants;
+create policy "curadores inserem variantes"
+  on word_phonetic_variants for insert
+  to authenticated
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "curadores editam variantes" on word_phonetic_variants;
+create policy "curadores editam variantes"
+  on word_phonetic_variants for update
+  to authenticated
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "curadores excluem variantes" on word_phonetic_variants;
+create policy "curadores excluem variantes"
+  on word_phonetic_variants for delete
+  to authenticated
+  using (auth.role() = 'authenticated');
 
 -- 2. Permissão de leitura dos candidatos pendentes para curadores autenticados
 drop policy if exists "curadores leem candidatos" on word_variant_candidates;
 create policy "curadores leem candidatos"
   on word_variant_candidates for select
+  to authenticated
   using (auth.role() = 'authenticated');
 
 -- 3. Função RPC para Aprovar Candidato (Move para variantes e marca como aprovado)

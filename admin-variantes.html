@@ -696,12 +696,12 @@
       try {
         const { error } = await supabaseClient
           .from('word_phonetic_variants')
-          .insert({ word, variant, source: 'curated' });
+          .upsert({ word, variant, source: 'curated' }, { onConflict: 'word,variant' });
 
         if (error) throw error;
 
         closeManualVariantModal();
-        loadAllData();
+        await loadAllData();
       } catch (err) {
         alert('Erro ao inserir variante: ' + (err.message || err));
       }
